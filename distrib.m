@@ -117,6 +117,14 @@ for i=1:new_natomW
     end
 end
 
+%blue in the 2nd layer is identical to orange in 1st layer
+atomtype_layer2blue=atomtype_layer1or;
+%red in the 3nd layer is identical to green in 1st layer
+atomtype_layer3red=atomtype_layer1gr;
+%black in the 3nd layer is identical to purple in 2nd layer
+atomtype_layer3black=atomtype_layer2p;
+
+
 natomW =new_natomW;
 natomL=new_natomL;
 clear startL start2L start3L  new_atomtype_layp  new_atomtype_layor new_atomtype_laygr new_atomtype_
