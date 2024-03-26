@@ -44,8 +44,179 @@ while ~(ct3>ct3run)
         mmxtmpJ_2=mmxtmp;mmytmpJ_2=mmytmp;mmztmpJ_2=mmztmp;
         mmxtmpJ_3=mmxtmp; mmytmpJ_3=mmytmp;mmztmpJ_3=mmztmp;
         mmxtmpJ_4=mmxtmp; mmytmpJ_4=mmytmp; mmztmpJ_4=mmztmp;
+     %%directly move in z direction
+     %%formation mmx_(z(direction)n(negative)1)_pre
+     %%mmx_zn1_pre means shift the system -1 in z direction (the data in layer 2 becomes layer3) 
+     % The matrix below is used to cauclate the exchange J1
+     mmx_zn1_pre=circshift(mmxtmp,[0,0,-1]);
+     mmy_zn1_pre=circshift(mmytmp,[0,0,-1]);
+     mmz_zn1_pre=circshift(mmztmp,[0,0,-1]);
+     mmx_zp1_nex=circshift(mmxtmp,[0,0,1]);
+     mmy_zp1_nex=circshift(mmytmp,[0,0,1]);
+     mmz_zp1_nex=circshift(mmztmp,[0,0,1]);
+  
+     %% 10 ways to move/ combine up and down=20ways
+     %%The matrix below is used to cauclate the DMI,J3,J4
+     % mmx_0p1_pre: 0p1 means shift the matrix [0,1]
+     % pre means shift the matrix [0,0,-1] 
+     mmx_0p1_pre=circshift(mmxtmp,[0,1,-1]);%i+1
+     mmy_0p1_pre=circshift(mmytmp,[0,1,-1]);
+     mmz_0p1_pre=circshift(mmztmp,[0,1,-1]);
+
+     mmx_0p1_nex=circshift(mmxtmp,[0,1,1]);%i-1
+     mmy_0p1_nex=circshift(mmytmp,[0,1,1]);
+     mmz_0p1_nex=circshift(mmztmp,[0,1,1]);
+
+     mmx_p1n1_pre=circshift(mmxtmp,[1,-1,-1]);%i+1
+     mmy_p1n1_pre=circshift(mmytmp,[1,-1,-1]);
+     mmz_p1n1_pre=circshift(mmztmp,[1,-1,-1]);
+
+     mmx_p1n1_nex=circshift(mmxtmp,[1,-1,1]);%i-1
+     mmy_p1n1_nex=circshift(mmytmp,[1,-1,1]);
+     mmz_p1n1_nex=circshift(mmztmp,[1,-1,1]);
+
+     mmx_n1n1_pre=circshift(mmxtmp,[-1,-1,-1]);%i+1
+     mmy_n1n1_pre=circshift(mmytmp,[-1,-1,-1]);
+     mmz_n1n1_pre=circshift(mmztmp,[-1,-1,-1]);
+
+     mmx_n1n1_nex=circshift(mmxtmp,[-1,-1,1]);%i-1
+     mmy_n1n1_nex=circshift(mmytmp,[-1,-1,1]);
+     mmz_n1n1_nex=circshift(mmztmp,[-1,-1,1]);
+
+     mmx_0n1_pre=circshift(mmxtmp,[0,-1,-1]);%i+1
+     mmy_0n1_pre=circshift(mmytmp,[0,-1,-1]);
+     mmz_0n1_pre=circshift(mmztmp,[0,-1,-1]);
+
+     mmx_0n1_nex=circshift(mmxtmp,[0,-1,1]);%i-1
+     mmy_0n1_nex=circshift(mmytmp,[0,-1,1]);
+     mmz_0n1_nex=circshift(mmztmp,[0,-1,1]);
+
+     mmx_n1p1_pre=circshift(mmxtmp,[-1,1,-1]);%i+1
+     mmy_n1p1_pre=circshift(mmytmp,[-1,1,-1]);
+     mmz_n1p1_pre=circshift(mmztmp,[-1,1,-1]);
+
+     mmx_n1p1_nex=circshift(mmxtmp,[-1,1,1]);
+     mmy_n1p1_nex=circshift(mmytmp,[-1,1,1]);
+     mmz_n1p1_nex=circshift(mmztmp,[-1,1,1]);
+
+     mmx_0n2_pre=circshift(mmxtmp,[0,-2,-1]);%i+1
+     mmy_0n2_pre=circshift(mmytmp,[0,-2,-1]);
+     mmz_0n2_pre=circshift(mmztmp,[0,-2,-1]);
+
+     mmx_0n2_nex=circshift(mmxtmp,[0,-2,1]);
+     mmy_0n2_nex=circshift(mmytmp,[0,-2,1]);
+     mmz_0n2_nex=circshift(mmztmp,[0,-2,1]);
+
+     mmx_p10_pre=circshift(mmxtmp,[1,0,-1]);%i+1
+     mmy_p10_pre=circshift(mmytmp,[1,0,-1]);
+     mmz_p10_pre=circshift(mmztmp,[1,0,-1]);
+
+     mmx_p10_nex=circshift(mmxtmp,[1,0,1]);
+     mmy_p10_nex=circshift(mmytmp,[1,0,1]);
+     mmz_p10_nex=circshift(mmztmp,[1,0,1]);
+
+     mmx_n10_pre=circshift(mmxtmp,[-1,0,-1]);%i+1
+     mmy_n10_pre=circshift(mmytmp,[-1,0,-1]);
+     mmz_n10_pre=circshift(mmztmp,[-1,0,-1]);
+
+     mmx_n10_nex=circshift(mmxtmp,[-1,0,1]);
+     mmy_n10_nex=circshift(mmytmp,[-1,0,1]);
+     mmz_n10_nex=circshift(mmztmp,[-1,0,1]);
+
+     mmx_p1p1_pre=circshift(mmxtmp,[1,1,-1]);%i+1
+     mmy_p1p1_pre=circshift(mmytmp,[1,1,-1]);
+     mmz_p1p1_pre=circshift(mmztmp,[1,1,-1]);
+
+     mmx_p1p1_nex=circshift(mmxtmp,[1,1,1]);
+     mmy_p1p1_nex=circshift(mmytmp,[1,1,1]);
+     mmz_p1p1_nex=circshift(mmztmp,[1,1,1]);
+
+     mmx_0p2_pre=circshift(mmxtmp,[0,2,-1]);%i+1
+     mmy_0p2_pre=circshift(mmytmp,[0,2,-1]);
+     mmz_0p2_pre=circshift(mmztmp,[0,2,-1]);
+
+     mmx_0p2_nex=circshift(mmxtmp,[0,2,1]);
+     mmy_0p2_nex=circshift(mmytmp,[0,2,1]);
+     mmz_0p2_nex=circshift(mmztmp,[0,2,1]);
+    %%%The matrix below is used to calculate the exchange J2
+    % or,gr or red bla blu pur means the exchange field suffered by these
+    % atoms.
+     mmx_0p2_or=circshift(atomtype_layer1gr.*mmxtmp,[0,2]);%%The exchange field of orange atoms is calculated with only green in mind 
+     mmy_0p2_or=circshift(atomtype_layer1gr.*mmytmp,[0,2]);
+     mmz_0p2_or=circshift(atomtype_layer1gr.*mmztmp,[0,2]);
+
+     mmx_p10_or=circshift(atomtype_layer1gr.*mmxtmp,[1,0]);
+     mmy_p10_or=circshift(atomtype_layer1gr.*mmytmp,[1,0]);
+     mmz_p10_or=circshift(atomtype_layer1gr.*mmztmp,[1,0]);
+
+     mmx_n10_or=circshift(atomtype_layer1gr.*mmxtmp,[-1,0]);
+     mmy_n10_or=circshift(atomtype_layer1gr.*mmytmp,[-1,0]);
+     mmz_n10_or=circshift(atomtype_layer1gr.*mmztmp,[-1,0]);
+
+     mmx_0n2_gr=circshift(atomtype_layer1or.*mmxtmp,[0,-2]);
+     mmy_0n2_gr=circshift(atomtype_layer1or.*mmytmp,[0,-2]);
+     mmz_0n2_gr=circshift(atomtype_layer1or.*mmztmp,[0,-2]);
+
+    mmx_p10_gr=circshift(atomtype_layer1or.*mmxtmp,[1,0]);
+    mmy_p10_gr=circshift(atomtype_layer1or.*mmytmp,[1,0]);
+    mmz_p10_gr=circshift(atomtype_layer1or.*mmztmp,[1,0]);
+
+    mmx_n10_gr=circshift(atomtype_layer1or.*mmxtmp,[-1,0]);
+    mmy_n10_gr=circshift(atomtype_layer1or.*mmytmp,[-1,0]);
+    mmz_n10_gr=circshift(atomtype_layer1or.*mmztmp,[-1,0]);
+%layer2_blue and purple
+    mmx_0p1_pu=circshift(atomtype_layer2blue.*mmxtmp,[0,1]);
+    mmy_0p1_pu=circshift(atomtype_layer2blue.*mmytmp,[0,1]);
+    mmz_0p1_pu=circshift(atomtype_layer2blue.*mmztmp,[0,1]);
+
+    mmx_n1n1_pu=circshift(atomtype_layer2blue.*mmxtmp,[-1,-1]);
+    mmy_n1n1_pu=circshift(atomtype_layer2blue.*mmytmp,[-1,-1]);
+    mmz_n1n1_pu=circshift(atomtype_layer2blue.*mmztmp,[-1,-1]);
+
+    mmx_p1n1_pu=circshift(atomtype_layer2blue.*mmxtmp,[1,-1]);
+    mmy_p1n1_pu=circshift(atomtype_layer2blue.*mmytmp,[1,-1]);
+    mmz_p1n1_pu=circshift(atomtype_layer2blue.*mmztmp,[1,-1]);
+
+   mmx_0n1_blu=circshift(atomtype_layer2p.*mmxtmp,[0,-1]);
+   mmy_0n1_blu=circshift(atomtype_layer2p.*mmytmp,[0,-1]);
+   mmz_0n1_blu=circshift(atomtype_layer2p.*mmztmp,[0,-1]);
+
+   mmx_n1p1_blu=circshift(atomtype_layer2p.*mmxtmp,[-1,1]);
+   mmy_n1p1_blu=circshift(atomtype_layer2p.*mmytmp,[-1,1]);
+   mmz_n1p1_blu=circshift(atomtype_layer2p.*mmztmp,[-1,1]);
+
+   mmx_p1p1_blu=circshift(atomtype_layer2p.*mmxtmp,[1,1]);
+   mmy_p1p1_blu=circshift(atomtype_layer2p.*mmytmp,[1,1]);
+   mmz_p1p1_blu=circshift(atomtype_layer2p.*mmztmp,[1,1]);
+
+%%layer3_red and black
+   mmx_0n1_bla=circshift(atomtype_layer3red.*mmxtmp,[0,-1]);
+   mmy_0n1_bla=circshift(atomtype_layer3red.*mmytmp,[0,-1]);
+   mmz_0n1_bla=circshift(atomtype_layer3red.*mmztmp,[0,-1]);
+
+   mmx_n1p1_bla=circshift(atomtype_layer3red.*mmxtmp,[-1,1]);
+   mmy_n1p1_bla=circshift(atomtype_layer3red.*mmytmp,[-1,1]);
+   mmz_n1p1_bla=circshift(atomtype_layer3red.*mmztmp,[-1,1]);
+
+   mmx_p1p1_bla=circshift(atomtype_layer3red.*mmxtmp,[1,1]);
+   mmy_p1p1_bla=circshift(atomtype_layer3red.*mmytmp,[1,1]);
+   mmz_p1p1_bla=circshift(atomtype_layer3red.*mmztmp,[1,1]);
+
+   mmx_0p1_red=circshift(atomtype_layer3black.*mmxtmp,[0,1]);
+   mmy_0p1_red=circshift(atomtype_layer3black.*mmytmp,[0,1]);
+   mmz_0p1_red=circshift(atomtype_layer3black.*mmztmp,[0,1]);
+
+   mmx_n1n1_red=circshift(atomtype_layer3black.*mmxtmp,[-1,-1]);
+   mmy_n1n1_red=circshift(atomtype_layer3black.*mmytmp,[-1,-1]);
+   mmz_n1n1_red=circshift(atomtype_layer3black.*mmztmp,[-1,-1]);
+
+   mmx_p1n1_red=circshift(atomtype_layer3black.*mmxtmp,[1,-1]);
+   mmy_p1n1_red=circshift(atomtype_layer3black.*mmytmp,[1,-1]);
+   mmz_p1n1_red=circshift(atomtype_layer3black.*mmztmp,[1,-1]);
+
+
        
-        exchangej_()
+       exchangej_()
 
        mmxtmpJ_1(atomtype_==2)=0;mmxtmpJ_2(atomtype_==2)=0;
        mmxtmpJ_3(atomtype_==2)=0;mmxtmpJ_4(atomtype_==2)=0;
