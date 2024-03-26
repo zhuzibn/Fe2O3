@@ -234,9 +234,9 @@ while ~(ct3>ct3run)
        clear mmytmpJ_2 mmytmpJ_1  mmytmpJ_3 mmytmpJ_4
        clear mmztmpJ_2 mmztmpJ_1  mmztmpJ_3 mmztmpJ_4
        
-       hani_x=2*Ksim1./muigpu.*mmxtmp;
+       hani_x=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');%anisotropy
        hani_y=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');
-       hani_z=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');%[T]
+       hani_z=2*Ksim1./muigpu.*mmztmp+4*Ksim2./muigpu.*mmztmp.^3;%[T]
 
         mmxtmpd_nex=mmxtmp;
         mmytmpd_nex=mmytmp;
@@ -261,9 +261,19 @@ while ~(ct3>ct3run)
 
        clear mmxtmpd_nex mmytmpd_nex  mmztmpd_nex
        clear mmxtmpd_pre mmytmpd_pre  mmztmpd_pre
-        hhx=hex_x+hani_x+hdmi_x+Hext(1);
-        hhy=hex_y+hani_y+hdmi_y+Hext(2);
-        hhz=hex_z+hani_z+hdmi_z+Hext(3);
+
+       hdipo_x=zeros(natomW,natomL,natomH,'gpuArray');
+       hdipo_y=zeros(natomW,natomL,natomH,'gpuArray');
+       hdipo_z=zeros(natomW,natomL,natomH,'gpuArray');
+
+       dipole_();
+
+       hdipo_x(atomtype_==2)=0;
+       hdipo_y(atomtype_==2)=0;
+       hdipo_z(atomtype_==2)=0;
+        hhx=hex_x+hani_x+hdmi_x+Hext(1)+hdipo_x;
+        hhy=hex_y+hani_y+hdmi_y+Hext(2)+hdipo_y;
+        hhz=hex_z+hani_z+hdmi_z+Hext(3)+hdipo_z;
         if rk4==2%4th predictor-corrector
             if ct3==1 && ~(ct1>3)
                 [sxx,syy,szz]=arrayfun(@atomgpurk4,mmxtmp,mmytmp,mmztmp,scalgpu,alp,...
