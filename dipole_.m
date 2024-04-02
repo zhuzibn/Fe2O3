@@ -35,7 +35,7 @@ for i=1:h
           hdipolez4(:,:,i)=mu_0/(4*pi)*(-muigpu.*(atomtype_layer1or.*mmz_0p2(:,:,i))./dist_.^3);
         
           rijx_=0.25335*1e-9;rijy_=-0.4388*1e-9;
-          dot_sr=muigpu.*(atomtype_layer1or.*mmx_n10(:,:,i).*atomtype_layer1or.*rijx_+mmy_n10(:,:,i).*rijy_);
+          dot_sr=muigpu.*(atomtype_layer1or.*mmx_n10(:,:,i).*rijx_+mmy_n10(:,:,i).*atomtype_layer1or.*rijy_);
           hdipolex5(:,:,i)=mu_0/(4*pi)*(3*rijx_.*dot_sr./dist_.^5-muigpu.*(atomtype_layer1or.*mmx_n10(:,:,i))./dist_.^3);%[T] 
           hdipoley5(:,:,i)=mu_0/(4*pi)*(3*rijy_.*dot_sr./dist_.^5-muigpu.*(atomtype_layer1or.*mmy_n10(:,:,i))./dist_.^3);
           hdipolez5(:,:,i)=mu_0/(4*pi)*(-muigpu.*(atomtype_layer1or.*mmz_n10(:,:,i))./dist_.^3);
@@ -44,7 +44,7 @@ for i=1:h
           dot_sr=muigpu.*(atomtype_layer1or.*mmx_p10(:,:,i).*rijx_+atomtype_layer1or.*mmy_p10(:,:,i).*rijy_);
           hdipolex6(:,:,i)=mu_0/(4*pi)*(3*rijx_.*dot_sr./dist_.^5-muigpu.*(atomtype_layer1or.*mmx_p10(:,:,i))./dist_.^3);%[T]
           hdipoley6(:,:,i)=mu_0/(4*pi)*(3*rijy_.*dot_sr./dist_.^5-muigpu.*(atomtype_layer1or.*mmy_p10(:,:,i))./dist_.^3);
-          hdipolez6(:,:,i)=mu_0/(4*pi)*(-muigpu.*(atomtype_layer1or.*mmz_n10(:,:,i))./dist_.^3);
+          hdipolez6(:,:,i)=mu_0/(4*pi)*(-muigpu.*(atomtype_layer1or.*mmz_p10(:,:,i))./dist_.^3);
 
           hdipolez_(:,:,i)= hdipolez6(:,:,i)+hdipolez5(:,:,i)+hdipolez4(:,:,i)+hdipolez3(:,:,i)+hdipolez2(:,:,i)+hdipolez1(:,:,i);
           hdipoley_(:,:,i)= hdipoley6(:,:,i)+hdipoley5(:,:,i)+hdipoley4(:,:,i)+hdipoley3(:,:,i)+hdipoley2(:,:,i)+hdipoley1(:,:,i);
