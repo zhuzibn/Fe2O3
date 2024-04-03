@@ -200,7 +200,6 @@ for i=1:h
             error('unexpected index');
     end
    
-        mmxtmpdmi_pre(:,:,i)=mmxtmpd_pre(:,:,i);mmytmpdmi_pre(:,:,i)=mmytmpd_pre(:,:,i);mmztmpdmi_pre(:,:,i)=mmztmpd_pre(:,:,i);
-        mmxtmpdmi_nex(:,:,i)=mmxtmpd_nex(:,:,i);mmytmpdmi_nex(:,:,i)=mmytmpd_nex(:,:,i);mmztmpdmi_nex(:,:,i)=mmztmpd_nex(:,:,i);
+      
 end
 

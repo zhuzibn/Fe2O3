@@ -30,9 +30,9 @@ while ~(ct3>ct3run)
         mmxtmp=mmx(:,:,:,ct1);
         mmytmp=mmy(:,:,:,ct1);
         mmztmp=mmz(:,:,:,ct1);
-        mmxtmp(atomtype_==2)=0;
-        mmytmp(atomtype_==2)=0;
-        mmztmp(atomtype_==2)=0;
+        mmxtmp=mmxtmp.*atomtype_s;
+        mmytmp=mmytmp.*atomtype_s;
+        mmztmp=mmztmp.*atomtype_s;
         mmx(:,:,:,ct1)=mmxtmp;
         mmy(:,:,:,ct1)=mmytmp;
         mmz(:,:,:,ct1)=mmztmp;
@@ -40,10 +40,7 @@ while ~(ct3>ct3run)
         mmxtmpJ2=mmxtmp;mmytmpJ2=mmytmp;mmztmpJ2=mmztmp;
         mmxtmpJ3=mmxtmp; mmytmpJ3=mmytmp;mmztmpJ3=mmztmp;
         mmxtmpJ4=mmxtmp; mmytmpJ4=mmytmp; mmztmpJ4=mmztmp;
-        mmxtmpJ_1=mmxtmp;mmytmpJ_1=mmytmp;mmztmpJ_1=mmztmp;
-        mmxtmpJ_2=mmxtmp;mmytmpJ_2=mmytmp;mmztmpJ_2=mmztmp;
-        mmxtmpJ_3=mmxtmp; mmytmpJ_3=mmytmp;mmztmpJ_3=mmztmp;
-        mmxtmpJ_4=mmxtmp; mmytmpJ_4=mmytmp; mmztmpJ_4=mmztmp;
+        
      %%directly move in z direction
      %%formation mmx_(z(direction)n(negative)1)_pre
  
@@ -94,21 +91,26 @@ while ~(ct3>ct3run)
        
        exchangej_()
 
-       mmxtmpJ_1(atomtype_==2)=0;mmxtmpJ_2(atomtype_==2)=0;
-       mmxtmpJ_3(atomtype_==2)=0;mmxtmpJ_4(atomtype_==2)=0;
-       mmytmpJ_1(atomtype_==2)=0;mmytmpJ_2(atomtype_==2)=0;
-       mmytmpJ_3(atomtype_==2)=0;mmytmpJ_4(atomtype_==2)=0;
-       mmztmpJ_1(atomtype_==2)=0;mmztmpJ_2(atomtype_==2)=0;
-       mmztmpJ_3(atomtype_==2)=0;mmztmpJ_4(atomtype_==2)=0;
+       mmxtmpJ1=mmxtmpJ1.*atomtype_s;
+       mmxtmpJ2=mmxtmpJ2.*atomtype_s;
+       mmxtmpJ3=mmxtmpJ3.*atomtype_s;
+       mmxtmpJ4=mmxtmpJ4.*atomtype_s;
+       mmytmpJ1=mmytmpJ1.*atomtype_s;
+       mmytmpJ2=mmytmpJ2.*atomtype_s;
+       mmytmpJ3=mmytmpJ3.*atomtype_s;
+       mmytmpJ4=mmytmpJ4.*atomtype_s;
+       mmztmpJ1=mmztmpJ1.*atomtype_s;
+       mmztmpJ2=mmztmpJ2.*atomtype_s;
+       mmztmpJ3=mmztmpJ3.*atomtype_s;
+       mmztmpJ4=mmztmpJ4.*atomtype_s;
+  
    
         
-       hex_x=-(J1.*mmxtmpJ_1+J2.*(mmxtmpJ_2)+J3.*(mmxtmpJ_3)+J4.*(mmxtmpJ_4))./muigpu;%[T]
-       hex_y=-(J1.*mmytmpJ_1+J2.*(mmytmpJ_2)+J3.*(mmytmpJ_3)+J4.*(mmytmpJ_4))./muigpu;%[T]
-       hex_z=-(J1.*mmztmpJ_1+J2.*(mmztmpJ_2)+J3.*(mmztmpJ_3)+J4.*(mmztmpJ_4))./muigpu;%[T]
+       hex_x=-(J1.*mmxtmpJ1+J2.*(mmxtmpJ2)+J3.*(mmxtmpJ3)+J4.*(mmxtmpJ4))./muigpu;%[T]
+       hex_y=-(J1.*mmytmpJ1+J2.*(mmytmpJ2)+J3.*(mmytmpJ3)+J4.*(mmytmpJ4))./muigpu;%[T]
+       hex_z=-(J1.*mmztmpJ1+J2.*(mmztmpJ2)+J3.*(mmztmpJ3)+J4.*(mmztmpJ4))./muigpu;%[T]
 
-       clear mmxtmpJ_2 mmxtmpJ_1  mmxtmpJ_3 mmxtmpJ_4
-       clear mmytmpJ_2 mmytmpJ_1  mmytmpJ_3 mmytmpJ_4
-       clear mmztmpJ_2 mmztmpJ_1  mmztmpJ_3 mmztmpJ_4
+
        
        hani_x=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');%anisotropy
        hani_y=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');
@@ -121,22 +123,19 @@ while ~(ct3>ct3run)
         mmytmpd_pre=mmytmp;
         mmztmpd_pre=mmztmp;
 
-        mmxtmpdmi_nex=mmxtmp;
-        mmytmpdmi_nex=mmytmp;
-        mmztmpdmi_nex=mmztmp;
-        mmxtmpdmi_pre=mmxtmp;
-        mmytmpdmi_pre=mmytmp;
-        mmztmpdmi_pre=mmztmp;
+      
        dmi()
-       mmxtmpdmi_nex(atomtype_==2)=0;mmytmpdmi_nex(atomtype_==2)=0;mmztmpdmi_nex(atomtype_==2)=0;
-       mmxtmpdmi_pre(atomtype_==2)=0;mmytmpdmi_pre(atomtype_==2)=0;mmztmpdmi_pre(atomtype_==2)=0;
-
-       hdmi_x=Dsim./muigpu.*(mmytmpdmi_nex-mmytmpdmi_pre);%[T]
-       hdmi_y=Dsim./muigpu.*(-mmxtmpdmi_nex+mmxtmpdmi_pre);
+        mmxtmpd_nex=mmxtmpd_nex.*atomtype_s;
+        mmytmpd_nex=mmytmpd_nex.*atomtype_s;
+        mmztmpd_nex=mmztmpd_nex.*atomtype_s;
+        mmxtmpd_pre=mmxtmpd_pre.*atomtype_s;
+        mmytmpd_pre=mmytmpd_pre.*atomtype_s;
+        mmztmpd_pre=mmztmpd_pre.*atomtype_s;
+       hdmi_x=Dsim./muigpu.*(mmytmpd_nex-mmytmpd_pre);%[T]
+       hdmi_y=Dsim./muigpu.*(-mmxtmpd_nex+mmxtmpd_pre);
        hdmi_z=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');
 
-       clear mmxtmpd_nex mmytmpd_nex  mmztmpd_nex
-       clear mmxtmpd_pre mmytmpd_pre  mmztmpd_pre
+
 
        hdipo_x=zeros(natomW,natomL,natomH,'gpuArray');
        hdipo_y=zeros(natomW,natomL,natomH,'gpuArray');
@@ -144,9 +143,9 @@ while ~(ct3>ct3run)
 
        dipole_();
 
-       hdipo_x(atomtype_==2)=0;
-       hdipo_y(atomtype_==2)=0;
-       hdipo_z(atomtype_==2)=0;
+       hdipo_x=hdipo_x.*atomtype_s;
+       hdipo_y=hdipo_y.*atomtype_s;
+       hdipo_z=hdipo_z.*atomtype_s;
         hhx=hex_x+hani_x+hdmi_x+Hext(1)+hdipo_x;
         hhy=hex_y+hani_y+hdmi_y+Hext(2)+hdipo_y;
         hhz=hex_z+hani_z+hdmi_z+Hext(3)+hdipo_z;
