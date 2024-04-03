@@ -30,9 +30,9 @@ while ~(ct3>ct3run)
         mmxtmp=mmx(:,:,:,ct1);
         mmytmp=mmy(:,:,:,ct1);
         mmztmp=mmz(:,:,:,ct1);
-        mmxtmp=mmxtmp.*atomtype_s;
-        mmytmp=mmytmp.*atomtype_s;
-        mmztmp=mmztmp.*atomtype_s;
+        mmxtmp(atomtype_==2)=0;
+        mmytmp(atomtype_==2)=0;
+        mmztmp(atomtype_==2)=0;
         mmx(:,:,:,ct1)=mmxtmp;
         mmy(:,:,:,ct1)=mmytmp;
         mmz(:,:,:,ct1)=mmztmp;
@@ -91,19 +91,12 @@ while ~(ct3>ct3run)
        
        exchangej_()
 
-       mmxtmpJ1=mmxtmpJ1.*atomtype_s;
-       mmxtmpJ2=mmxtmpJ2.*atomtype_s;
-       mmxtmpJ3=mmxtmpJ3.*atomtype_s;
-       mmxtmpJ4=mmxtmpJ4.*atomtype_s;
-       mmytmpJ1=mmytmpJ1.*atomtype_s;
-       mmytmpJ2=mmytmpJ2.*atomtype_s;
-       mmytmpJ3=mmytmpJ3.*atomtype_s;
-       mmytmpJ4=mmytmpJ4.*atomtype_s;
-       mmztmpJ1=mmztmpJ1.*atomtype_s;
-       mmztmpJ2=mmztmpJ2.*atomtype_s;
-       mmztmpJ3=mmztmpJ3.*atomtype_s;
-       mmztmpJ4=mmztmpJ4.*atomtype_s;
-  
+       mmxtmpJ1(atomtype_==2)=0;mmxtmpJ2(atomtype_==2)=0;
+       mmxtmpJ3(atomtype_==2)=0;mmxtmpJ4(atomtype_==2)=0;
+       mmytmpJ1(atomtype_==2)=0;mmytmpJ2(atomtype_==2)=0;
+       mmytmpJ3(atomtype_==2)=0;mmytmpJ4(atomtype_==2)=0;
+       mmztmpJ1(atomtype_==2)=0;mmztmpJ2(atomtype_==2)=0;
+       mmztmpJ3(atomtype_==2)=0;mmztmpJ4(atomtype_==2)=0;
    
         
        hex_x=-(J1.*mmxtmpJ1+J2.*(mmxtmpJ2)+J3.*(mmxtmpJ3)+J4.*(mmxtmpJ4))./muigpu;%[T]
@@ -125,12 +118,9 @@ while ~(ct3>ct3run)
 
       
        dmi()
-        mmxtmpd_nex=mmxtmpd_nex.*atomtype_s;
-        mmytmpd_nex=mmytmpd_nex.*atomtype_s;
-        mmztmpd_nex=mmztmpd_nex.*atomtype_s;
-        mmxtmpd_pre=mmxtmpd_pre.*atomtype_s;
-        mmytmpd_pre=mmytmpd_pre.*atomtype_s;
-        mmztmpd_pre=mmztmpd_pre.*atomtype_s;
+       mmxtmpd_nex(atomtype_==2)=0;mmytmpd_nex(atomtype_==2)=0;mmztmpd_nex(atomtype_==2)=0;
+       mmxtmpd_pre(atomtype_==2)=0;mmytmpd_pre(atomtype_==2)=0;mmztmpd_pre(atomtype_==2)=0;
+       
        hdmi_x=Dsim./muigpu.*(mmytmpd_nex-mmytmpd_pre);%[T]
        hdmi_y=Dsim./muigpu.*(-mmxtmpd_nex+mmxtmpd_pre);
        hdmi_z=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');
