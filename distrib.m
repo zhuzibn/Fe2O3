@@ -7,7 +7,7 @@ for ctL = 1:natomL
     for ctH = 1:natomH
         if (mod(ctH-1,3)==0)
             if mod(ctL, 2) == 1  % 对于偶数 ctL
-                atomtype_(ctW, ctL, ctH) = 0;
+                atomtype_(ctW, ctL, ctH) = 1;
             end
         end
     end
@@ -46,10 +46,10 @@ for ctW = 1:natomW
             end
 
             for ctL = startL:4:natomL
-                atomtype_(ctW, ctL, ctH) = 0;
+                atomtype_(ctW, ctL, ctH) = 1;
             end
             for ctL = start2L:4:natomL
-                atomtype_(ctW, ctL, ctH) = 0;
+                atomtype_(ctW, ctL, ctH) = 1;
             end
         end
     end
@@ -63,9 +63,9 @@ for ctH = 1:natomH
     new_atomtype_(3:end-2, 3:end-2, ctH) = atomtype_(:, :, ctH);
 end
 %% filter for each layer
-atomtype_layer1gr = zeros(natomW, natomL);
-atomtype_layer1or = zeros(natomW, natomL);
-atomtype_layer2p = zeros(natomW, natomL);
+atomtype_layer1gr = zeros(natomW,natomL,'gpuArray');
+atomtype_layer1or = zeros(natomW,natomL,'gpuArray');
+atomtype_layer2p = zeros(natomW,natomL,'gpuArray');
 
 %% layer 1gre=layer 3r; layer 1or=layer b; layer 2p=layer 3black;
 for ctW = 1:natomW
@@ -100,6 +100,7 @@ atomtype_=new_atomtype_;
 atomtype_layer2p =new_atomtype_layp;
 atomtype_layer1or =new_atomtype_layor;
 atomtype_layer1gr=new_atomtype_laygr;
+atomtype_s= zeros(new_natomW,new_natomL,natomH,'gpuArray');
 for i=1:new_natomW
     for j=1:new_natomL
         if atomtype_layer1gr(i,j)==2
@@ -124,6 +125,19 @@ atomtype_layer3red=atomtype_layer1gr;
 %black in the 3nd layer is identical to purple in 2nd layer
 atomtype_layer3black=atomtype_layer2p;
 
+%%filtr of the totally atomtype
+
+for i=1:new_natomW
+    for j=1:new_natomL
+        for h=1:natomH
+        if atomtype_(i,j,h)==2
+            atomtype_s(i,j,h)=0;
+        else
+         atomtype_s(i,j,h)=1;
+        end
+        end
+    end
+end
 
 natomW =new_natomW;
 natomL=new_natomL;
