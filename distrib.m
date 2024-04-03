@@ -100,7 +100,8 @@ atomtype_=new_atomtype_;
 atomtype_layer2p =new_atomtype_layp;
 atomtype_layer1or =new_atomtype_layor;
 atomtype_layer1gr=new_atomtype_laygr;
-
+atomtype_s= zeros(new_natomW,new_natomL,natomH,'gpuArray');
+ato_s= zeros(new_natomW,new_natomL,natomH,'gpuArray');
 for i=1:new_natomW
     for j=1:new_natomL
         if atomtype_layer1gr(i,j)==2
@@ -125,7 +126,21 @@ atomtype_layer3red=atomtype_layer1gr;
 %black in the 3nd layer is identical to purple in 2nd layer
 atomtype_layer3black=atomtype_layer2p;
 
+%%filtr of the totally atomtype
 
+for i=1:new_natomW
+    for j=1:new_natomL
+        for h=1:natomH
+        if atomtype_(i,j,h)==2
+            atomtype_s(i,j,h)=0;
+            ato_s(i,j,h)=1;
+        else
+         atomtype_s(i,j,h)=1;
+         ato_s(i,j,h)=0;
+        end
+        end
+    end
+end
 
 natomW =new_natomW;
 natomL=new_natomL;
