@@ -135,16 +135,19 @@ while ~(ct3>ct3run)
        hdmi_z=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');
 
 
+      if ct1==1||fix(ct1/50)==ct1/50
+        hdipo_x=zeros(natomW,natomL,natomH,'gpuArray');
+        hdipo_y=zeros(natomW,natomL,natomH,'gpuArray');
+        hdipo_z=zeros(natomW,natomL,natomH,'gpuArray');
 
-       hdipo_x=zeros(natomW,natomL,natomH,'gpuArray');
-       hdipo_y=zeros(natomW,natomL,natomH,'gpuArray');
-       hdipo_z=zeros(natomW,natomL,natomH,'gpuArray');
-
-       dipole_();
+        dipole_();
 
         hdipo_x=hdipo_x.*atomtype_s;
         hdipo_y=hdipo_y.*atomtype_s;
         hdipo_z=hdipo_z.*atomtype_s;
+      else
+      end
+
         hhx=hex_x+hani_x+hdmi_x+Hext(1)+hdipo_x;
         hhy=hex_y+hani_y+hdmi_y+Hext(2)+hdipo_y;
         hhz=hex_z+hani_z+hdmi_z+Hext(3)+hdipo_z;
@@ -210,8 +213,8 @@ end
 
 clear mmx mmy mmz tmp2xn0 tmp2yn0 tmp2zn0 tmp2xn1 tmp2yn1 tmp2zn1
 clear tmp2xn2 tmp2yn2 tmp2zn2
-mmx=mmx_;
-mmy=mmy_;
-mmz=mmz_;
+mmx=mmx_.*atomtype_s;
+mmy=mmy_.*atomtype_s;
+mmz=mmz_.*atomtype_s;
 clear mmx_ mmy_ mmz_
 t=t(1:savetstep:end);
