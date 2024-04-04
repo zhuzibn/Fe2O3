@@ -101,6 +101,7 @@ atomtype_layer2p =new_atomtype_layp;
 atomtype_layer1or =new_atomtype_layor;
 atomtype_layer1gr=new_atomtype_laygr;
 atomtype_s= zeros(new_natomW,new_natomL,natomH,'gpuArray');
+ato_s= zeros(new_natomW,new_natomL,natomH,'gpuArray');
 for i=1:new_natomW
     for j=1:new_natomL
         if atomtype_layer1gr(i,j)==2
@@ -132,8 +133,10 @@ for i=1:new_natomW
         for h=1:natomH
         if atomtype_(i,j,h)==2
             atomtype_s(i,j,h)=0;
+            ato_s(i,j,h)=1;
         else
          atomtype_s(i,j,h)=1;
+         ato_s(i,j,h)=0;
         end
         end
     end

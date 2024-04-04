@@ -103,9 +103,7 @@ while ~(ct3>ct3run)
        mmztmpJ2=mmztmpJ2.*atomtype_s;
        mmztmpJ3=mmztmpJ3.*atomtype_s;
        mmztmpJ4=mmztmpJ4.*atomtype_s;
-  
-   
-        
+
        hex_x=-(J1.*mmxtmpJ1+J2.*(mmxtmpJ2)+J3.*(mmxtmpJ3)+J4.*(mmxtmpJ4))./muigpu;%[T]
        hex_y=-(J1.*mmytmpJ1+J2.*(mmytmpJ2)+J3.*(mmytmpJ3)+J4.*(mmytmpJ4))./muigpu;%[T]
        hex_z=-(J1.*mmztmpJ1+J2.*(mmztmpJ2)+J3.*(mmztmpJ3)+J4.*(mmztmpJ4))./muigpu;%[T]
@@ -125,12 +123,13 @@ while ~(ct3>ct3run)
 
       
        dmi()
-        mmxtmpd_nex=mmxtmpd_nex.*atomtype_s;
-        mmytmpd_nex=mmytmpd_nex.*atomtype_s;
-        mmztmpd_nex=mmztmpd_nex.*atomtype_s;
-        mmxtmpd_pre=mmxtmpd_pre.*atomtype_s;
-        mmytmpd_pre=mmytmpd_pre.*atomtype_s;
-        mmztmpd_pre=mmztmpd_pre.*atomtype_s;
+       mmxtmpd_nex=mmxtmpd_nex.*atomtype_s;
+       mmytmpd_nex=mmytmpd_nex.*atomtype_s;
+       mmztmpd_nex=mmztmpd_nex.*atomtype_s;
+       mmxtmpd_pre=mmxtmpd_pre.*atomtype_s;
+       mmytmpd_pre=mmytmpd_pre.*atomtype_s;
+       mmztmpd_pre=mmztmpd_pre.*atomtype_s;
+  
        hdmi_x=Dsim./muigpu.*(mmytmpd_nex-mmytmpd_pre);%[T]
        hdmi_y=Dsim./muigpu.*(-mmxtmpd_nex+mmxtmpd_pre);
        hdmi_z=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');
@@ -143,12 +142,16 @@ while ~(ct3>ct3run)
 
        dipole_();
 
-       hdipo_x=hdipo_x.*atomtype_s;
-       hdipo_y=hdipo_y.*atomtype_s;
-       hdipo_z=hdipo_z.*atomtype_s;
+        hdipo_x=hdipo_x.*atomtype_s;
+        hdipo_y=hdipo_y.*atomtype_s;
+        hdipo_z=hdipo_z.*atomtype_s;
         hhx=hex_x+hani_x+hdmi_x+Hext(1)+hdipo_x;
         hhy=hex_y+hani_y+hdmi_y+Hext(2)+hdipo_y;
         hhz=hex_z+hani_z+hdmi_z+Hext(3)+hdipo_z;
+
+        mmxtmp=mmxtmp+ato_s;
+        mmytmp=mmytmp+ato_s;
+        mmztmp=mmztmp+ato_s;
         if rk4==2%4th predictor-corrector
             if ct3==1 && ~(ct1>3)
                 [sxx,syy,szz]=arrayfun(@atomgpurk4,mmxtmp,mmytmp,mmztmp,scalgpu,alp,...
@@ -162,6 +165,7 @@ while ~(ct3>ct3run)
             [sxx,syy,szz]=arrayfun(@atomgpurk4,mmxtmp,mmytmp,mmztmp,psjSHEx,...
                 psjSHEy,psjSHEz,psjSTTx,psjSTTy,psjSTTz,scalgpu,alp,...
                 tstep,hhx,hhy,hhz,BDSOT,BFSOT,BDSTT,BFSTT);
+
         else%heun
             [sxx,syy,szz]=arrayfun(@atomgpu,mmxtmp,mmytmp,mmztmp,scalgpu,alp,...
                 tstep,hhx,hhy,hhz);%
