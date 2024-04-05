@@ -145,13 +145,14 @@ while ~(ct3>ct3run)
             hdmi_y=Dsim./muigpu.*(-mmxtmpd_nex+mmxtmpd_pre);
             hdmi_z=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');
         end
-
-        if dipolemode && mod(ct1+1,dipole_tstep)==1
+        if dipolemode
+        if ct1==1 || mod(ct1+1,dipole_tstep)==1
             %ct1==1||fix(ct1/50)==ct1/50
             dipole_();
             hdipo_x=hdipo_x.*atomtype_;
             hdipo_y=hdipo_y.*atomtype_;
             hdipo_z=hdipo_z.*atomtype_;
+        end
         end
 
         hhx=hex_x+hani_x+hdmi_x+Hext(1)+hdipo_x;
