@@ -2,7 +2,7 @@
 %since the lattice constant is a=0.5067e-9, c= 13.88e-10.
 % we only consider the dipole in a distance a=0.5067e-9.
 %three different cases as the exchange J2.
-for i=1:h
+for i=1:natomH
     dist_=0.5067*1e-9;%% the distance between two nearst atoms in the lattice plane is a=0.5067e-9.
     switch mod(i-1,3)
         case 0
