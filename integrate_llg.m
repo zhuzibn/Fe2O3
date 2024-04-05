@@ -1,19 +1,49 @@
 mmx_=zeros(natomW,natomL,natomH, gpurun_number*final_m_savestep);
 mmy_=zeros(natomW,natomL,natomH, gpurun_number*final_m_savestep);
 mmz_=zeros(natomW,natomL,natomH, gpurun_number*final_m_savestep);
-%% J1, J2, J3, J4 only shift the mx,,my,mz and set the poper boundary condition.
+% J1 matrix
+mmxtmpJ1=zeros(natomW,natomL,natomH,'gpuArray');
+mmytmpJ1=zeros(natomW,natomL,natomH,'gpuArray');
+mmztmpJ1=zeros(natomW,natomL,natomH,'gpuArray');
+% J2 matrix
+mmxtmpJ2=zeros(natomW,natomL,natomH,'gpuArray');
+mmytmpJ2=zeros(natomW,natomL,natomH,'gpuArray');
+mmztmpJ2=zeros(natomW,natomL,natomH,'gpuArray');
+% J3 matrix
+mmxtmpJ3=zeros(natomW,natomL,natomH,'gpuArray');
+mmytmpJ3=zeros(natomW,natomL,natomH,'gpuArray');
+mmztmpJ3=zeros(natomW,natomL,natomH,'gpuArray');
+% J4 matrix
+mmxtmpJ4=zeros(natomW,natomL,natomH,'gpuArray');
+mmytmpJ4=zeros(natomW,natomL,natomH,'gpuArray');
+mmztmpJ4=zeros(natomW,natomL,natomH,'gpuArray');
+% DMI net layer matrix
+mmxtmpd_nex=zeros(natomW,natomL,natomH,'gpuArray');
+mmytmpd_nex=zeros(natomW,natomL,natomH,'gpuArray');
+mmztmpd_nex=zeros(natomW,natomL,natomH,'gpuArray');
+mmxtmpd_pre=zeros(natomW,natomL,natomH,'gpuArray');
+mmytmpd_pre=zeros(natomW,natomL,natomH,'gpuArray');
+mmztmpd_pre=zeros(natomW,natomL,natomH,'gpuArray');
+%
+hdmi_x=zeros(natomW,natomL,natomH,'gpuArray');
+hdmi_y=zeros(natomW,natomL,natomH,'gpuArray');
+hdmi_z=zeros(natomW,natomL,natomH,'gpuArray');
+hdipo_x=zeros(natomW,natomL,natomH,'gpuArray');
+hdipo_y=zeros(natomW,natomL,natomH,'gpuArray');
+hdipo_z=zeros(natomW,natomL,natomH,'gpuArray');
+%%parameter
 scalgpu=gam/(1+alp^2);%scale parameter
 BDSOT=BDSOTRE;
-BDSTT=BDSTTRE;        
+BDSTT=BDSTTRE;
 gamatom=scalgpu*(1+alp^2);
-clear ctW ctL
 BFSOT=chi*BDSOT;
 BFSTT=chi*BDSTT;
 muigpu=mus;
 ct3run=round((runtime)/gpusave);
 ct3=1;
+dipole_tstep=50;%decrease the dipole filed step
 while ~(ct3>ct3run)
-    
+
     mmx=zeros(natomW,natomL,natomH,gpusteps,'gpuArray');
     mmy=zeros(natomW,natomL,natomH,gpusteps,'gpuArray');
     mmz=zeros(natomW,natomL,natomH,gpusteps,'gpuArray');
@@ -26,127 +56,103 @@ while ~(ct3>ct3run)
     clear tmpx tmpy tmpz
     ct1=1; %count 1
     while ct1<gpusteps
-    
+
         mmxtmp=mmx(:,:,:,ct1);
         mmytmp=mmy(:,:,:,ct1);
         mmztmp=mmz(:,:,:,ct1);
-        mmxtmp=mmxtmp.*atomtype_s;
-        mmytmp=mmytmp.*atomtype_s;
-        mmztmp=mmztmp.*atomtype_s;
-        mmx(:,:,:,ct1)=mmxtmp;
-        mmy(:,:,:,ct1)=mmytmp;
-        mmz(:,:,:,ct1)=mmztmp;
-        mmxtmpJ1=mmxtmp;mmytmpJ1=mmytmp;mmztmpJ1=mmztmp;
-        mmxtmpJ2=mmxtmp;mmytmpJ2=mmytmp;mmztmpJ2=mmztmp;
-        mmxtmpJ3=mmxtmp; mmytmpJ3=mmytmp;mmztmpJ3=mmztmp;
-        mmxtmpJ4=mmxtmp; mmytmpJ4=mmytmp; mmztmpJ4=mmztmp;
+        mmxtmp=mmxtmp.*atomtype_;
+        mmytmp=mmytmp.*atomtype_;
+        mmztmp=mmztmp.*atomtype_;
+        %% 10 ways to move/ combine up and down=20ways
+        % The matrix below is used to cauclate the DMI,J3,J4
+        % mmx_0p1_pre: 0p1 means shift the matrix [0,1]
+        mmx_0p1=circshift(mmxtmp,[0,1]); %[0 1]  shift right one position
+        mmy_0p1=circshift(mmytmp,[0,1]);
+        mmz_0p1=circshift(mmztmp,[0,1]);
+
+        mmx_p1n1=circshift(mmxtmp,[1,-1]);
+        mmy_p1n1=circshift(mmytmp,[1,-1]);
+        mmz_p1n1=circshift(mmztmp,[1,-1]);
+
+        mmx_n1n1=circshift(mmxtmp,[-1,-1]);
+        mmy_n1n1=circshift(mmytmp,[-1,-1]);
+        mmz_n1n1=circshift(mmztmp,[-1,-1]);
+
+        mmx_0n1=circshift(mmxtmp,[0,-1]);
+        mmy_0n1=circshift(mmytmp,[0,-1]);
+        mmz_0n1=circshift(mmztmp,[0,-1]);
+
+        mmx_n1p1=circshift(mmxtmp,[-1,1]);
+        mmy_n1p1=circshift(mmytmp,[-1,1]);
+        mmz_n1p1=circshift(mmztmp,[-1,1]);
+
+        mmx_0n2=circshift(mmxtmp,[0,-2]);
+        mmy_0n2=circshift(mmytmp,[0,-2]);
+        mmz_0n2=circshift(mmztmp,[0,-2]);
+
+        mmx_p10=circshift(mmxtmp,[1,0]);%[1 0]  shift down one position
+        mmy_p10=circshift(mmytmp,[1,0]);
+        mmz_p10=circshift(mmztmp,[1,0]);
+
+        mmx_n10=circshift(mmxtmp,[-1,0]);
+        mmy_n10=circshift(mmytmp,[-1,0]);
+        mmz_n10=circshift(mmztmp,[-1,0]);
+
+        mmx_p1p1=circshift(mmxtmp,[1,1]);
+        mmy_p1p1=circshift(mmytmp,[1,1]);
+        mmz_p1p1=circshift(mmztmp,[1,1]);
+
+        mmx_0p2=circshift(mmxtmp,[0,2]);
+        mmy_0p2=circshift(mmytmp,[0,2]);
+        mmz_0p2=circshift(mmztmp,[0,2]);
+%% calcuation for exchange interaction
+        exchangej_()
+
+        mmxtmpJ1=mmxtmpJ1.*atomtype_;
+        mmytmpJ1=mmytmpJ1.*atomtype_;
+        mmztmpJ1=mmztmpJ1.*atomtype_;
+
+        mmxtmpJ2=mmxtmpJ2.*atomtype_;
+        mmytmpJ2=mmytmpJ2.*atomtype_;
+        mmztmpJ2=mmztmpJ2.*atomtype_;
+
+        mmxtmpJ3=mmxtmpJ3.*atomtype_;
+        mmytmpJ3=mmytmpJ3.*atomtype_;
+        mmztmpJ3=mmztmpJ3.*atomtype_;
         
-     %%directly move in z direction
-     %%formation mmx_(z(direction)n(negative)1)_pre
- 
+        mmxtmpJ4=mmxtmpJ4.*atomtype_;
+        mmytmpJ4=mmytmpJ4.*atomtype_;
+        mmztmpJ4=mmztmpJ4.*atomtype_;
 
-     %% 10 ways to move/ combine up and down=20ways
-     %%The matrix below is used to cauclate the DMI,J3,J4
-     % mmx_0p1_pre: 0p1 means shift the matrix [0,1]
-     % pre means shift the matrix [0,0,-1] 
-     mmx_0p1=circshift(mmxtmp,[0,1]);
-     mmy_0p1=circshift(mmytmp,[0,1]);
-     mmz_0p1=circshift(mmztmp,[0,1]);
+        hex_x=-(J1.*mmxtmpJ1+J2.*(mmxtmpJ2)+J3.*(mmxtmpJ3)+J4.*(mmxtmpJ4))./muigpu;%[T]
+        hex_y=-(J1.*mmytmpJ1+J2.*(mmytmpJ2)+J3.*(mmytmpJ3)+J4.*(mmytmpJ4))./muigpu;%[T]
+        hex_z=-(J1.*mmztmpJ1+J2.*(mmztmpJ2)+J3.*(mmztmpJ3)+J4.*(mmztmpJ4))./muigpu;%[T]
+%% calcuation for anisotropy field        
+        hani_x=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');%anisotropy
+        hani_y=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');
+        hani_z=2*Ksim1./muigpu.*mmztmp+4*Ksim2./muigpu.*mmztmp.^3;%[T]
+%% calcuation for DMI field     
+        if DMIenable
+            dmi()
+            mmxtmpd_nex=mmxtmpd_nex.*atomtype_;
+            mmytmpd_nex=mmytmpd_nex.*atomtype_;
+            mmztmpd_nex=mmztmpd_nex.*atomtype_;
+            mmxtmpd_pre=mmxtmpd_pre.*atomtype_;
+            mmytmpd_pre=mmytmpd_pre.*atomtype_;
+            mmztmpd_pre=mmztmpd_pre.*atomtype_;
 
-     mmx_p1n1=circshift(mmxtmp,[1,-1]);
-     mmy_p1n1=circshift(mmytmp,[1,-1]);
-     mmz_p1n1=circshift(mmztmp,[1,-1]);
- 
-     mmx_n1n1=circshift(mmxtmp,[-1,-1]);
-     mmy_n1n1=circshift(mmytmp,[-1,-1]);
-     mmz_n1n1=circshift(mmztmp,[-1,-1]);
+            hdmi_x=Dsim./muigpu.*(mmytmpd_nex-mmytmpd_pre);%[T]
+            hdmi_y=Dsim./muigpu.*(-mmxtmpd_nex+mmxtmpd_pre);
+            hdmi_z=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');
+        end
 
-     mmx_0n1=circshift(mmxtmp,[0,-1]);
-     mmy_0n1=circshift(mmytmp,[0,-1]);
-     mmz_0n1=circshift(mmztmp,[0,-1]);
-
-     mmx_n1p1=circshift(mmxtmp,[-1,1]);
-     mmy_n1p1=circshift(mmytmp,[-1,1]);
-     mmz_n1p1=circshift(mmztmp,[-1,1]); 
-
-     mmx_0n2=circshift(mmxtmp,[0,-2]);
-     mmy_0n2=circshift(mmytmp,[0,-2]);
-     mmz_0n2=circshift(mmztmp,[0,-2]);
-
-     mmx_p10=circshift(mmxtmp,[1,0]);
-     mmy_p10=circshift(mmytmp,[1,0]);
-     mmz_p10=circshift(mmztmp,[1,0]);
-
-     mmx_n10=circshift(mmxtmp,[-1,0]);
-     mmy_n10=circshift(mmytmp,[-1,0]);
-     mmz_n10=circshift(mmztmp,[-1,0]);
-
-     mmx_p1p1=circshift(mmxtmp,[1,1]);
-     mmy_p1p1=circshift(mmytmp,[1,1]);
-     mmz_p1p1=circshift(mmztmp,[1,1]);
-
-     mmx_0p2=circshift(mmxtmp,[0,2]);
-     mmy_0p2=circshift(mmytmp,[0,2]);
-     mmz_0p2=circshift(mmztmp,[0,2]);
-       
-       exchangej_()
-
-       mmxtmpJ1=mmxtmpJ1.*atomtype_s;
-       mmxtmpJ2=mmxtmpJ2.*atomtype_s;
-       mmxtmpJ3=mmxtmpJ3.*atomtype_s;
-       mmxtmpJ4=mmxtmpJ4.*atomtype_s;
-       mmytmpJ1=mmytmpJ1.*atomtype_s;
-       mmytmpJ2=mmytmpJ2.*atomtype_s;
-       mmytmpJ3=mmytmpJ3.*atomtype_s;
-       mmytmpJ4=mmytmpJ4.*atomtype_s;
-       mmztmpJ1=mmztmpJ1.*atomtype_s;
-       mmztmpJ2=mmztmpJ2.*atomtype_s;
-       mmztmpJ3=mmztmpJ3.*atomtype_s;
-       mmztmpJ4=mmztmpJ4.*atomtype_s;
-
-       hex_x=-(J1.*mmxtmpJ1+J2.*(mmxtmpJ2)+J3.*(mmxtmpJ3)+J4.*(mmxtmpJ4))./muigpu;%[T]
-       hex_y=-(J1.*mmytmpJ1+J2.*(mmytmpJ2)+J3.*(mmytmpJ3)+J4.*(mmytmpJ4))./muigpu;%[T]
-       hex_z=-(J1.*mmztmpJ1+J2.*(mmztmpJ2)+J3.*(mmztmpJ3)+J4.*(mmztmpJ4))./muigpu;%[T]
-
-
-       
-       hani_x=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');%anisotropy
-       hani_y=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');
-       hani_z=2*Ksim1./muigpu.*mmztmp+4*Ksim2./muigpu.*mmztmp.^3;%[T]
-
-        mmxtmpd_nex=mmxtmp;
-        mmytmpd_nex=mmytmp;
-        mmztmpd_nex=mmztmp;
-        mmxtmpd_pre=mmxtmp;
-        mmytmpd_pre=mmytmp;
-        mmztmpd_pre=mmztmp;
-
-      
-       dmi()
-       mmxtmpd_nex=mmxtmpd_nex.*atomtype_s;
-       mmytmpd_nex=mmytmpd_nex.*atomtype_s;
-       mmztmpd_nex=mmztmpd_nex.*atomtype_s;
-       mmxtmpd_pre=mmxtmpd_pre.*atomtype_s;
-       mmytmpd_pre=mmytmpd_pre.*atomtype_s;
-       mmztmpd_pre=mmztmpd_pre.*atomtype_s;
-  
-       hdmi_x=Dsim./muigpu.*(mmytmpd_nex-mmytmpd_pre);%[T]
-       hdmi_y=Dsim./muigpu.*(-mmxtmpd_nex+mmxtmpd_pre);
-       hdmi_z=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');
-
-
-      if ct1==1||fix(ct1/50)==ct1/50
-        hdipo_x=zeros(natomW,natomL,natomH,'gpuArray');
-        hdipo_y=zeros(natomW,natomL,natomH,'gpuArray');
-        hdipo_z=zeros(natomW,natomL,natomH,'gpuArray');
-
-        dipole_();
-
-        hdipo_x=hdipo_x.*atomtype_s;
-        hdipo_y=hdipo_y.*atomtype_s;
-        hdipo_z=hdipo_z.*atomtype_s;
-      else
-      end
+        if dipolemode && mod(ct1+1,dipole_tstep)==1
+            %ct1==1||fix(ct1/50)==ct1/50
+            dipole_();
+            hdipo_x=hdipo_x.*atomtype_;
+            hdipo_y=hdipo_y.*atomtype_;
+            hdipo_z=hdipo_z.*atomtype_;
+        end
 
         hhx=hex_x+hani_x+hdmi_x+Hext(1)+hdipo_x;
         hhy=hex_y+hani_y+hdmi_y+Hext(2)+hdipo_y;
@@ -155,6 +161,7 @@ while ~(ct3>ct3run)
         mmxtmp=mmxtmp+ato_s;
         mmytmp=mmytmp+ato_s;
         mmztmp=mmztmp+ato_s;
+
         if rk4==2%4th predictor-corrector
             if ct3==1 && ~(ct1>3)
                 [sxx,syy,szz]=arrayfun(@atomgpurk4,mmxtmp,mmytmp,mmztmp,scalgpu,alp,...
@@ -173,17 +180,9 @@ while ~(ct3>ct3run)
             [sxx,syy,szz]=arrayfun(@atomgpu,mmxtmp,mmytmp,mmztmp,scalgpu,alp,...
                 tstep,hhx,hhy,hhz);%
         end
-        
-         mmx(:,:,:,ct1+1)=sxx; mmy(:,:,:,ct1+1)=syy; mmz(:,:,:,ct1+1)=szz;
-        if enablefixedge
-            mmx(:,1:fixededgeL,ct1+1)=mxleft;
-            mmy(:,1:fixededgeL,ct1+1)=myleft;
-            mmz(:,1:fixededgeL,ct1+1)=mzleft;
-            
-            mmx(:,natomL-fixededgeL:end,ct1+1)=mxright;
-            mmy(:,natomL-fixededgeL:end,ct1+1)=myright;
-            mmz(:,natomL-fixededgeL:end,ct1+1)=mzright;
-        end
+
+        mmx(:,:,:,ct1+1)=sxx; mmy(:,:,:,ct1+1)=syy; mmz(:,:,:,ct1+1)=szz;
+   
         ct1=ct1+1;
         if ~(ct3==1 && ~(ct1>3)) && ct1>3
             tmpxn0=mmx(:,:,:,ct1);tmpyn0=mmy(:,:,:,ct1);tmpzn0=mmz(:,:,:,ct1);
@@ -213,8 +212,8 @@ end
 
 clear mmx mmy mmz tmp2xn0 tmp2yn0 tmp2zn0 tmp2xn1 tmp2yn1 tmp2zn1
 clear tmp2xn2 tmp2yn2 tmp2zn2
-mmx=mmx_.*atomtype_s;
-mmy=mmy_.*atomtype_s;
-mmz=mmz_.*atomtype_s;
+mmx=mmx_.*atomtype_;
+mmy=mmy_.*atomtype_;
+mmz=mmz_.*atomtype_;
 clear mmx_ mmy_ mmz_
 t=t(1:savetstep:end);
