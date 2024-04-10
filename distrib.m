@@ -113,9 +113,9 @@ for ctW = 1:natomW
         atomtype_layer2p(ctW, ctL) = 1;
     end
 end
-new_atomtype_laygr = 2 * ones(new_natomW,new_natomL,'gpuArray');
-new_atomtype_layor = 2 * ones(new_natomW,new_natomL,'gpuArray');
-new_atomtype_layp = 2 * ones(new_natomW,new_natomL,'gpuArray');
+new_atomtype_laygr = zeros(new_natomW,new_natomL,'gpuArray');
+new_atomtype_layor = zeros(new_natomW,new_natomL,'gpuArray');
+new_atomtype_layp = zeros(new_natomW,new_natomL,'gpuArray');
 new_atomtype_laygr (3:end-2, 3:end-2) = atomtype_layer1gr(:, :);
 new_atomtype_layor (3:end-2, 3:end-2) = atomtype_layer1or(:, :);
 new_atomtype_layp (3:end-2, 3:end-2) = atomtype_layer2p(:, :);

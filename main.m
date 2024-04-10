@@ -26,13 +26,13 @@ end
 %% optional control
 %gpuDevice(1)%select GPU device
 %% system generation
-natomW=20;natomL=20;natomH=6;
+natomW=50;natomL=50;natomH=9;
 c=13.882e-10;% Phy. Rev.B.107,184426 (2023)
 h=natomH*c;
 systemgeneration();
 %% FiM parameters
-Ksim1=1.8073e-23;% second-order anisotropy
-Ksim2=1.7624e-25;% forth-order anisotropy
+Ksim1=1.8073e-25;% second-order anisotropy
+Ksim2=1.7624e-27;% forth-order anisotropy
 J1=1.3740e-21;J2=-1.1696e-21;J3=4.0413e-21;J4=2.8041e-21;%[Phy. Rev.B.107,184426 (2023)]
 g=2;%g-factor
 gam=g*mub/(hbar*ele);%1/(s.T)
@@ -84,7 +84,7 @@ BDSTTTM=STT_DLT*hbar/2*etaSTT*jcSTT/(ms*tz);
 T=100;%[K]
 %% time control
 gpusave=1e-12;%how often saving gpu data
-gpurun_number=300                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 ;
+gpurun_number=200                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 ;
 tstep=2e-16;
 savetstep=1000;%this is used to reduce data size
 gpusteps=round(gpusave/tstep);
