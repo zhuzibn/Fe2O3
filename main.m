@@ -85,7 +85,7 @@ T=100;%[K]
 %% time control
 gpusave=1e-12;%how often saving gpu data
 gpurun_number=200                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 ;
-tstep=2e-16;
+tstep=1e-16;
 savetstep=1000;%this is used to reduce data size
 gpusteps=round(gpusave/tstep);
 runtime=gpurun_number*gpusave;%second run for dw motion
