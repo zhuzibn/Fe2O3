@@ -28,7 +28,7 @@
 %      \      /
 %       r*---        [1 0 0]
 %layer 3 is divied into black (b) and red (r) atoms to calculate
-atomtype_ = zeros(natomW, natomL, natomH);
+atomtype_ = zeros(natomW, natomL, natomH,'gpuArray');
 %% determine if there is atom in the first layer
 for ctW=1:natomW
     for ctL = 1:natomL
@@ -85,7 +85,7 @@ end
 %% pad two column and row for the boundary
 new_natomW = natomW + 4;
 new_natomL = natomL + 4;
-new_atomtype_ = zeros(new_natomW, new_natomL, natomH);
+new_atomtype_ = zeros(new_natomW, new_natomL, natomH,'gpuArray');
 for ctH = 1:natomH
     new_atomtype_(3:end-2, 3:end-2, ctH) = atomtype_(:, :, ctH);
 end
@@ -113,9 +113,9 @@ for ctW = 1:natomW
         atomtype_layer2p(ctW, ctL) = 1;
     end
 end
-new_atomtype_laygr = 2 * ones(new_natomW,new_natomL,'gpuArray');
-new_atomtype_layor = 2 * ones(new_natomW,new_natomL,'gpuArray');
-new_atomtype_layp = 2 * ones(new_natomW,new_natomL,'gpuArray');
+new_atomtype_laygr = zeros(new_natomW,new_natomL,'gpuArray');
+new_atomtype_layor = zeros(new_natomW,new_natomL,'gpuArray');
+new_atomtype_layp = zeros(new_natomW,new_natomL,'gpuArray');
 new_atomtype_laygr (3:end-2, 3:end-2) = atomtype_layer1gr(:, :);
 new_atomtype_layor (3:end-2, 3:end-2) = atomtype_layer1or(:, :);
 new_atomtype_layp (3:end-2, 3:end-2) = atomtype_layer2p(:, :);

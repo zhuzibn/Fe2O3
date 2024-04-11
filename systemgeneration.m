@@ -38,14 +38,14 @@ if dwcalc
         end
     end
 else
-    thet_=75/180*pi;
+    thet_=90/180*pi;
     for ctL=1:natomL
         for ctW=1:natomW
             for ctH=1:natomH
                 if mod (ctH,2)==1
-                    phi_=30/180*pi;
-                else
                     phi_=210/180*pi;
+                else
+                    phi_=30/180*pi;
                 end
                 mx_init(ctW,ctL,ctH)=sin(thet_)*cos(phi_);
                 my_init(ctW,ctL,ctH)=sin(thet_)*sin(phi_);

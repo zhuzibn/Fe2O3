@@ -147,7 +147,6 @@ while ~(ct3>ct3run)
         end
         if dipolemode
         if ct1==1 || mod(ct1+1,dipole_tstep)==1
-            %ct1==1||fix(ct1/50)==ct1/50
             dipole_();
             hdipo_x=hdipo_x.*atomtype_;
             hdipo_y=hdipo_y.*atomtype_;
