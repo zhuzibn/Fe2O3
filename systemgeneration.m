@@ -8,6 +8,7 @@ if dwcalc
     for ctL=1:natomL
         for ctW=1:natomW
             for ctH=1:natomH
+                if mod(ctH,2)==0
                 if ctL<round(natomL/2)
                     if atomtype_(ctW,ctL,ctH)==1%TM
                         phi_=5/180*pi;
@@ -34,6 +35,36 @@ if dwcalc
                         mz_init(ctW,ctL,ctH)=0;
                     end
                 end
+                else
+                    if ctL<round(natomL/2)
+                    if atomtype_(ctW,ctL,ctH)==1%TM
+                        phi_=(5+180)/180*pi;
+                        thet_=90/180*pi;
+                        mx_init(ctW,ctL,ctH)=sin(thet_)*cos(phi_);
+                        my_init(ctW,ctL,ctH)=sin(thet_)*sin(phi_);
+                        mz_init(ctW,ctL,ctH)=cos(thet_);
+                    else
+                        mx_init(ctW,ctL,ctH)=0;
+                        my_init(ctW,ctL,ctH)=0;
+                        mz_init(ctW,ctL,ctH)=0;
+                    end
+
+                else
+                    if atomtype_(ctW,ctL,ctH)==1%TM
+                        phi_=5/180*pi;
+                        thet_=90/180*pi;
+                        mx_init(ctW,ctL,ctH)=sin(thet_)*cos(phi_);
+                        my_init(ctW,ctL,ctH)=sin(thet_)*sin(phi_);
+                        mz_init(ctW,ctL,ctH)=cos(thet_);
+                    else
+                        mx_init(ctW,ctL,ctH)=0;
+                        my_init(ctW,ctL,ctH)=0;
+                        mz_init(ctW,ctL,ctH)=0;
+                    end
+                end
+
+                end
+
             end
         end
     end
