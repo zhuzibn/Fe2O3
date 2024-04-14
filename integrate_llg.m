@@ -2,35 +2,35 @@ mmx_=zeros(natomW,natomL,natomH, gpurun_number*final_m_savestep);
 mmy_=zeros(natomW,natomL,natomH, gpurun_number*final_m_savestep);
 mmz_=zeros(natomW,natomL,natomH, gpurun_number*final_m_savestep);
 % J1 matrix
-mmxtmpJ1=zeros(natomW,natomL,natomH,'gpuArray');
-mmytmpJ1=zeros(natomW,natomL,natomH,'gpuArray');
-mmztmpJ1=zeros(natomW,natomL,natomH,'gpuArray');
+mmxtmpJ1=zeros(natomW,natomL,natomH);
+mmytmpJ1=zeros(natomW,natomL,natomH);
+mmztmpJ1=zeros(natomW,natomL,natomH);
 % J2 matrix
-mmxtmpJ2=zeros(natomW,natomL,natomH,'gpuArray');
-mmytmpJ2=zeros(natomW,natomL,natomH,'gpuArray');
-mmztmpJ2=zeros(natomW,natomL,natomH,'gpuArray');
+mmxtmpJ2=zeros(natomW,natomL,natomH);
+mmytmpJ2=zeros(natomW,natomL,natomH);
+mmztmpJ2=zeros(natomW,natomL,natomH);
 % J3 matrix
-mmxtmpJ3=zeros(natomW,natomL,natomH,'gpuArray');
-mmytmpJ3=zeros(natomW,natomL,natomH,'gpuArray');
-mmztmpJ3=zeros(natomW,natomL,natomH,'gpuArray');
+mmxtmpJ3=zeros(natomW,natomL,natomH);
+mmytmpJ3=zeros(natomW,natomL,natomH);
+mmztmpJ3=zeros(natomW,natomL,natomH);
 % J4 matrix
-mmxtmpJ4=zeros(natomW,natomL,natomH,'gpuArray');
-mmytmpJ4=zeros(natomW,natomL,natomH,'gpuArray');
-mmztmpJ4=zeros(natomW,natomL,natomH,'gpuArray');
+mmxtmpJ4=zeros(natomW,natomL,natomH);
+mmytmpJ4=zeros(natomW,natomL,natomH);
+mmztmpJ4=zeros(natomW,natomL,natomH);
 % DMI net layer matrix
-mmxtmpd_nex=zeros(natomW,natomL,natomH,'gpuArray');
-mmytmpd_nex=zeros(natomW,natomL,natomH,'gpuArray');
-mmztmpd_nex=zeros(natomW,natomL,natomH,'gpuArray');
-mmxtmpd_pre=zeros(natomW,natomL,natomH,'gpuArray');
-mmytmpd_pre=zeros(natomW,natomL,natomH,'gpuArray');
-mmztmpd_pre=zeros(natomW,natomL,natomH,'gpuArray');
+mmxtmpd_nex=zeros(natomW,natomL,natomH);
+mmytmpd_nex=zeros(natomW,natomL,natomH);
+mmztmpd_nex=zeros(natomW,natomL,natomH);
+mmxtmpd_pre=zeros(natomW,natomL,natomH);
+mmytmpd_pre=zeros(natomW,natomL,natomH);
+mmztmpd_pre=zeros(natomW,natomL,natomH);
 %
-hdmi_x=zeros(natomW,natomL,natomH,'gpuArray');
-hdmi_y=zeros(natomW,natomL,natomH,'gpuArray');
-hdmi_z=zeros(natomW,natomL,natomH,'gpuArray');
-hdipo_x=zeros(natomW,natomL,natomH,'gpuArray');
-hdipo_y=zeros(natomW,natomL,natomH,'gpuArray');
-hdipo_z=zeros(natomW,natomL,natomH,'gpuArray');
+hdmi_x=zeros(natomW,natomL,natomH);
+hdmi_y=zeros(natomW,natomL,natomH);
+hdmi_z=zeros(natomW,natomL,natomH);
+hdipo_x=zeros(natomW,natomL,natomH);
+hdipo_y=zeros(natomW,natomL,natomH);
+hdipo_z=zeros(natomW,natomL,natomH);
 %%parameter
 scalgpu=gam/(1+alp^2);%scale parameter
 BDSOT=BDSOTRE;
@@ -44,9 +44,9 @@ ct3=1;
 dipole_tstep=50;%decrease the dipole filed step
 while ~(ct3>ct3run)
 
-    mmx=zeros(natomW,natomL,natomH,gpusteps,'gpuArray');
-    mmy=zeros(natomW,natomL,natomH,gpusteps,'gpuArray');
-    mmz=zeros(natomW,natomL,natomH,gpusteps,'gpuArray');
+    mmx=zeros(natomW,natomL,natomH,gpusteps);
+    mmy=zeros(natomW,natomL,natomH,gpusteps);
+    mmz=zeros(natomW,natomL,natomH,gpusteps);
 
     if ~(ct3==1)
         mmx(:,:,:,1)=tmp2xn0;mmy(:,:,:,1)=tmp2yn0;mmz(:,:,:,1)=tmp2zn0;
@@ -128,8 +128,8 @@ while ~(ct3>ct3run)
         hex_y=-(J1.*mmytmpJ1+J2.*(mmytmpJ2)+J3.*(mmytmpJ3)+J4.*(mmytmpJ4))./muigpu;%[T]
         hex_z=-(J1.*mmztmpJ1+J2.*(mmztmpJ2)+J3.*(mmztmpJ3)+J4.*(mmztmpJ4))./muigpu;%[T]
 %% calcuation for anisotropy field        
-        hani_x=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');%anisotropy
-        hani_y=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');
+        hani_x=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3));%anisotropy
+        hani_y=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3));
         hani_z=2*Ksim1./muigpu.*mmztmp+4*Ksim2./muigpu.*mmztmp.^3;%[T]
 %% calcuation for DMI field     
         if DMIenable
@@ -143,10 +143,10 @@ while ~(ct3>ct3run)
 
             hdmi_x=Dsim./muigpu.*(mmytmpd_nex-mmytmpd_pre);%[T]
             hdmi_y=Dsim./muigpu.*(-mmxtmpd_nex+mmxtmpd_pre);
-            hdmi_z=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3),'gpuArray');
+            hdmi_z=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3));
         end
         if dipolemode
-        if ct1==1 || mod(ct1+1,dipole_tstep)==1
+        if mod(ct1,dipole_tstep)==1
             dipole_();
             hdipo_x=hdipo_x.*atomtype_;
             hdipo_y=hdipo_y.*atomtype_;
@@ -161,7 +161,9 @@ while ~(ct3>ct3run)
         mmxtmp=mmxtmp+ato_s;
         mmytmp=mmytmp+ato_s;
         mmztmp=mmztmp+ato_s;
-
+        mmxtmp=gpuArray(mmxtmp);
+        mmytmp=gpuArray(mmytmp);
+        mmztmp=gpuArray(mmztmp);
         if rk4==2%4th predictor-corrector
             if ct3==1 && ~(ct1>3)
                 [sxx,syy,szz]=arrayfun(@atomgpurk4,mmxtmp,mmytmp,mmztmp,scalgpu,alp,...
