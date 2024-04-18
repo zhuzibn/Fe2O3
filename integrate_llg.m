@@ -1,3 +1,7 @@
+%reduce data size （optional)
+% mmx_show=zeros(natomW,natomL,saven);
+% mmy_show=zeros(natomW,natomL,saven);
+% mmz_show=zeros(natomW,natomL,saven);
 mmx_=zeros(natomW,natomL,natomH, gpurun_number*final_m_savestep);
 mmy_=zeros(natomW,natomL,natomH, gpurun_number*final_m_savestep);
 mmz_=zeros(natomW,natomL,natomH, gpurun_number*final_m_savestep);
@@ -123,7 +127,7 @@ while ~(ct3>ct3run)
         mmx_0p2=circshift(mmxtmp,[0,2]);
         mmy_0p2=circshift(mmytmp,[0,2]);
         mmz_0p2=circshift(mmztmp,[0,2]);
-%% calcuation for exchange interaction
+        %% calcuation for exchange interaction
         exchangej_()
 
         mmxtmpJ1=mmxtmpJ1.*atomtype_;
@@ -137,7 +141,7 @@ while ~(ct3>ct3run)
         mmxtmpJ3=mmxtmpJ3.*atomtype_;
         mmytmpJ3=mmytmpJ3.*atomtype_;
         mmztmpJ3=mmztmpJ3.*atomtype_;
-        
+
         mmxtmpJ4=mmxtmpJ4.*atomtype_;
         mmytmpJ4=mmytmpJ4.*atomtype_;
         mmztmpJ4=mmztmpJ4.*atomtype_;
@@ -145,11 +149,11 @@ while ~(ct3>ct3run)
         hex_x=-(J1.*mmxtmpJ1+J2.*(mmxtmpJ2)+J3.*(mmxtmpJ3)+J4.*(mmxtmpJ4))./muigpu;%[T]
         hex_y=-(J1.*mmytmpJ1+J2.*(mmytmpJ2)+J3.*(mmytmpJ3)+J4.*(mmytmpJ4))./muigpu;%[T]
         hex_z=-(J1.*mmztmpJ1+J2.*(mmztmpJ2)+J3.*(mmztmpJ3)+J4.*(mmztmpJ4))./muigpu;%[T]
-%% calcuation for anisotropy field        
+        %% calcuation for anisotropy field
         hani_x=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3));%anisotropy
         hani_y=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3));
         hani_z=2*Ksim1./muigpu.*mmztmp+4*Ksim2./muigpu.*mmztmp.^3;%[T]
-%% calcuation for DMI field     
+        %% calcuation for DMI field
         if DMIenable
             dmi()
             mmxtmpd_nex=mmxtmpd_nex.*atomtype_;
@@ -164,12 +168,12 @@ while ~(ct3>ct3run)
             hdmi_z=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3));
         end
         if dipolemode
-        if mod(ct1,dipole_tstep)==1
-            dipole_();
-            hdipo_x=hdipo_x.*atomtype_;
-            hdipo_y=hdipo_y.*atomtype_;
-            hdipo_z=hdipo_z.*atomtype_;
-        end
+            if mod(ct1,dipole_tstep)==1
+                dipole_();
+                hdipo_x=hdipo_x.*atomtype_;
+                hdipo_y=hdipo_y.*atomtype_;
+                hdipo_z=hdipo_z.*atomtype_;
+            end
         end
 
         hhx=hex_x+hani_x+hdmi_x+Hext(1)+hdipo_x;
@@ -202,7 +206,7 @@ while ~(ct3>ct3run)
         end
 
         mmx(:,:,:,ct1+1)=sxx; mmy(:,:,:,ct1+1)=syy; mmz(:,:,:,ct1+1)=szz;
-   
+
         ct1=ct1+1;
         if ~(ct3==1 && ~(ct1>3)) && ct1>3
             tmpxn0=mmx(:,:,:,ct1);tmpyn0=mmy(:,:,:,ct1);tmpzn0=mmz(:,:,:,ct1);
@@ -227,11 +231,24 @@ while ~(ct3>ct3run)
     mmx_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmx(:,:,:,1:savetstep:end));
     mmy_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmy(:,:,:,1:savetstep:end));
     mmz_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmz(:,:,:,1:savetstep:end));
+    %reduce data size (optional)
+    % mmx_show(:,:,ct3)=gather(tmp2xn0);
+    % mmy_show(:,:,ct3)=gather(tmp2yn0);
+    % mmz_show(:,:,ct3)=gather(tmp2zn0);
     ct3=ct3+1;
 end
 
 clear mmx mmy mmz tmp2xn0 tmp2yn0 tmp2zn0 tmp2xn1 tmp2yn1 tmp2zn1
 clear tmp2xn2 tmp2yn2 tmp2zn2
+clear tmpxn0 tmpxn1 tmpxn2 tmpxn3 
+clear tmpyn0 tmpyn1 tmpyn2 tmpyn3 
+clear tmpzn0 tmpzn1 tmpzn2 tmpzn3 
+clear mmxtmpJ1 mmxtmpJ2 mmxtmpJ3 mmxtmpJ4
+clear mmytmpJ1 mmytmpJ2 mmytmpJ3 mmytmpJ4
+clear mmztmpJ1 mmztmpJ2 mmztmpJ3 mmztmpJ4
+clear mmxtmpd_nex mmytmpd_nex mmztmpd_nex
+clear mmxtmpd_pre mmytmpd_pre mmztmpd_pre
+
 mmx=mmx_.*atomtype_;
 mmy=mmy_.*atomtype_;
 mmz=mmz_.*atomtype_;
