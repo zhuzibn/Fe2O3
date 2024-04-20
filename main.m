@@ -33,7 +33,7 @@ systemgeneration();
 %% FiM parameters
 Ksim1=1.8073e-25;% second-order anisotropy
 Ksim2=1.7624e-27;% forth-order anisotropy
-J1=1.3740e-21;J2=-1.1696e-22;J3=4.0413e-21;J4=2.8041e-21;%[Phy. Rev.B.107,184426 (2023)]
+J1=1.3740e-21;J2=-1.1696e-21;J3=4.0413e-21;J4=2.8041e-21;%[Phy. Rev.B.107,184426 (2023)]
 g=2;%g-factor
 gam=g*mub/(hbar*ele);%1/(s.T)
 mus=4.2313*mub;
