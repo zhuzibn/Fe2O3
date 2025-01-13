@@ -85,101 +85,6 @@ while ~(ct3>ct3run)
         mmxtmp=mmxtmp.*atomtype_;
         mmytmp=mmytmp.*atomtype_;
         mmztmp=mmztmp.*atomtype_;
-        %% 10 ways to move/ combine up and down=20ways
-        % The matrix below is used to cauclate the DMI,J3,J4
-        % mmx_0p1_pre: 0p1 means shift the matrix [0,1]
-        mmx_0p1=circshift(mmxtmp,[0,1]); %[0 1]  shift right one position
-        mmy_0p1=circshift(mmytmp,[0,1]);
-        mmz_0p1=circshift(mmztmp,[0,1]);
-
-        mmx_p1n1=circshift(mmxtmp,[1,-1]);
-        mmy_p1n1=circshift(mmytmp,[1,-1]);
-        mmz_p1n1=circshift(mmztmp,[1,-1]);
-
-        mmx_n1n1=circshift(mmxtmp,[-1,-1]);
-        mmy_n1n1=circshift(mmytmp,[-1,-1]);
-        mmz_n1n1=circshift(mmztmp,[-1,-1]);
-
-        mmx_0n1=circshift(mmxtmp,[0,-1]);
-        mmy_0n1=circshift(mmytmp,[0,-1]);
-        mmz_0n1=circshift(mmztmp,[0,-1]);
-
-        mmx_n1p1=circshift(mmxtmp,[-1,1]);
-        mmy_n1p1=circshift(mmytmp,[-1,1]);
-        mmz_n1p1=circshift(mmztmp,[-1,1]);
-
-        mmx_0n2=circshift(mmxtmp,[0,-2]);
-        mmy_0n2=circshift(mmytmp,[0,-2]);
-        mmz_0n2=circshift(mmztmp,[0,-2]);
-
-        mmx_p10=circshift(mmxtmp,[1,0]);%[1 0]  shift down one position
-        mmy_p10=circshift(mmytmp,[1,0]);
-        mmz_p10=circshift(mmztmp,[1,0]);
-
-        mmx_n10=circshift(mmxtmp,[-1,0]);
-        mmy_n10=circshift(mmytmp,[-1,0]);
-        mmz_n10=circshift(mmztmp,[-1,0]);
-
-        mmx_p1p1=circshift(mmxtmp,[1,1]);
-        mmy_p1p1=circshift(mmytmp,[1,1]);
-        mmz_p1p1=circshift(mmztmp,[1,1]);
-
-        mmx_0p2=circshift(mmxtmp,[0,2]);
-        mmy_0p2=circshift(mmytmp,[0,2]);
-        mmz_0p2=circshift(mmztmp,[0,2]);
-        %% calcuation for exchange interaction
-        exchangej_()
-
-        mmxtmpJ1=mmxtmpJ1.*atomtype_;
-        mmytmpJ1=mmytmpJ1.*atomtype_;
-        mmztmpJ1=mmztmpJ1.*atomtype_;
-
-        mmxtmpJ2=mmxtmpJ2.*atomtype_;
-        mmytmpJ2=mmytmpJ2.*atomtype_;
-        mmztmpJ2=mmztmpJ2.*atomtype_;
-
-        mmxtmpJ3=mmxtmpJ3.*atomtype_;
-        mmytmpJ3=mmytmpJ3.*atomtype_;
-        mmztmpJ3=mmztmpJ3.*atomtype_;
-
-        mmxtmpJ4=mmxtmpJ4.*atomtype_;
-        mmytmpJ4=mmytmpJ4.*atomtype_;
-        mmztmpJ4=mmztmpJ4.*atomtype_;
-
-        hex_x=-(J1.*mmxtmpJ1+J2.*(mmxtmpJ2)+J3.*(mmxtmpJ3)+J4.*(mmxtmpJ4))./muigpu;%[T]
-        hex_y=-(J1.*mmytmpJ1+J2.*(mmytmpJ2)+J3.*(mmytmpJ3)+J4.*(mmytmpJ4))./muigpu;%[T]
-        hex_z=-(J1.*mmztmpJ1+J2.*(mmztmpJ2)+J3.*(mmztmpJ3)+J4.*(mmztmpJ4))./muigpu;%[T]
-        %% calcuation for anisotropy field
-        hani_x=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3));%anisotropy
-        hani_y=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3));
-        hani_z=2*Ksim1./muigpu.*mmztmp+4*Ksim2./muigpu.*mmztmp.^3;%[T]
-        %% calcuation for DMI field
-        if DMIenable
-            dmi()
-            mmxtmpd_nex=mmxtmpd_nex.*atomtype_;
-            mmytmpd_nex=mmytmpd_nex.*atomtype_;
-            mmztmpd_nex=mmztmpd_nex.*atomtype_;
-            mmxtmpd_pre=mmxtmpd_pre.*atomtype_;
-            mmytmpd_pre=mmytmpd_pre.*atomtype_;
-            mmztmpd_pre=mmztmpd_pre.*atomtype_;
-
-            hdmi_x=Dsim./muigpu.*(mmytmpd_nex-mmytmpd_pre);%[T]
-            hdmi_y=Dsim./muigpu.*(-mmxtmpd_nex+mmxtmpd_pre);
-            hdmi_z=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3));
-        end
-        if dipolemode
-            if mod(ct1,dipole_tstep)==1
-                dipole_();
-                hdipo_x=hdipo_x.*atomtype_;
-                hdipo_y=hdipo_y.*atomtype_;
-                hdipo_z=hdipo_z.*atomtype_;
-            end
-        end
-
-        hhx=hex_x+hani_x+hdmi_x+Hext(1)+hdipo_x;
-        hhy=hex_y+hani_y+hdmi_y+Hext(2)+hdipo_y;
-        hhz=hex_z+hani_z+hdmi_z+Hext(3)+hdipo_z;
-
         mmxtmp=mmxtmp+ato_s;
         mmytmp=mmytmp+ato_s;
         mmztmp=mmztmp+ato_s;
@@ -196,9 +101,74 @@ while ~(ct3>ct3run)
                     scalgpu,alp,tstep,hhx,hhy,hhz);
             end
         elseif rk4==1 %rk4
-            [sxx,syy,szz]=arrayfun(@atomgpurk4,mmxtmp,mmytmp,mmztmp,psjSHEx,...
+          field_calc();
+            mmxtmp=mmxtmp+ato_s;
+            mmytmp=mmytmp+ato_s;
+            mmztmp=mmztmp+ato_s;
+            mmxtmp=gpuArray(mmxtmp);
+            mmytmp=gpuArray(mmytmp);
+            mmztmp=gpuArray(mmztmp);
+            mmxtmp0=mmxtmp;
+            mmytmp0=mmytmp;
+            mmztmp0=mmztmp;
+            [kk1x,kk1y,kk1z]=arrayfun(@atomgpurk4,mmxtmp,mmytmp,mmztmp,psjSHEx,...
                 psjSHEy,psjSHEz,psjSTTx,psjSTTy,psjSTTz,scalgpu,alp,...
                 tstep,hhx,hhy,hhz,BDSOT,BFSOT,BDSTT,BFSTT);
+            mmxtmp=mmxtmp0+1/2*tstep*kk1x;
+            mmytmp=mmytmp0+1/2*tstep*kk1y;
+            mmztmp=mmztmp0+1/2*tstep*kk1z;
+            mmxtmp=mmxtmp.*atomtype_;
+            mmytmp=mmytmp.*atomtype_;
+            mmztmp=mmztmp.*atomtype_;
+            field_calc();
+            mmytmp=mmytmp+ato_s;
+            mmztmp=mmztmp+ato_s;
+            mmxtmp=gpuArray(mmxtmp);
+            mmytmp=gpuArray(mmytmp);
+            mmztmp=gpuArray(mmztmp);
+            [kk2x,kk2y,kk2z]=arrayfun(@atomgpurk4,mmxtmp,mmytmp,mmztmp,psjSHEx,...
+                psjSHEy,psjSHEz,psjSTTx,psjSTTy,psjSTTz,scalgpu,alp,...
+                tstep,hhx,hhy,hhz,BDSOT,BFSOT,BDSTT,BFSTT);
+            mmxtmp=mmxtmp0+1/2*tstep*kk2x;
+            mmytmp=mmytmp0+1/2*tstep*kk2y;
+            mmztmp=mmztmp0+1/2*tstep*kk2z;
+
+            mmxtmp=mmxtmp.*atomtype_;
+            mmytmp=mmytmp.*atomtype_;
+            mmztmp=mmztmp.*atomtype_;
+            field_calc();
+            mmytmp=mmytmp+ato_s;
+            mmztmp=mmztmp+ato_s;
+            mmxtmp=gpuArray(mmxtmp);
+            mmytmp=gpuArray(mmytmp);
+            mmztmp=gpuArray(mmztmp);
+            [kk3x,kk3y,kk3z]=arrayfun(@atomgpurk4,mmxtmp,mmytmp,mmztmp,psjSHEx,...
+                psjSHEy,psjSHEz,psjSTTx,psjSTTy,psjSTTz,scalgpu,alp,...
+                tstep,hhx,hhy,hhz,BDSOT,BFSOT,BDSTT,BFSTT);
+            mmxtmp=mmxtmp0+1/2*tstep*kk3x;
+            mmytmp=mmytmp0+1/2*tstep*kk3y;
+            mmztmp=mmztmp0+1/2*tstep*kk3z;
+
+            mmxtmp=mmxtmp.*atomtype_;
+            mmytmp=mmytmp.*atomtype_;
+            mmztmp=mmztmp.*atomtype_;
+            field_calc();
+            mmytmp=mmytmp+ato_s;
+            mmztmp=mmztmp+ato_s;
+            mmxtmp=gpuArray(mmxtmp);
+            mmytmp=gpuArray(mmytmp);
+            mmztmp=gpuArray(mmztmp);
+            [kk4x,kk4y,kk4z]=arrayfun(@atomgpurk4,mmxtmp,mmytmp,mmztmp,psjSHEx,...
+                psjSHEy,psjSHEz,psjSTTx,psjSTTy,psjSTTz,scalgpu,alp,...
+                tstep,hhx,hhy,hhz,BDSOT,BFSOT,BDSTT,BFSTT);
+            snx=mmxtmp0+1/6*tstep*(kk1x+2*kk2x+2*kk3x+kk4x);
+            sny=mmytmp0+1/6*tstep*(kk1y+2*kk2y+2*kk3y+kk4y);
+            snz=mmztmp0+1/6*tstep*(kk1z+2*kk2z+2*kk3z+kk4z);
+            normsn=sqrt(snx.^2+sny.^2+snz.^2);
+            sxx=snx./normsn;
+            syy=sny./normsn;
+            szz=snz./normsn;
+
 
         else%heun
             [sxx,syy,szz]=arrayfun(@atomgpu,mmxtmp,mmytmp,mmztmp,scalgpu,alp,...
