@@ -12,6 +12,13 @@ publication have not been reconciled, the affected item is marked
 `UNRESOLVED`. Such an item must not be presented as an established material
 property or silently changed in the code.
 
+The MATLAB files were imported from `code_20261013` after the ten-item review
+in [../diff.md](../diff.md). The sole code correction replaces 18 adjacent-layer
+DMI reads from trajectory buffers with reads from the current spin state.
+Source anisotropy, DMI-history, and time-bookkeeping defects are retained.
+See [import verification](#import-verification) for focused checks and the
+additional unresolved DMI antisymmetry finding.
+
 Evidence labels used below are:
 
 - **Implemented**: directly observed in the checked-in MATLAB code.
@@ -111,15 +118,15 @@ have not been validated.
 
 ### Distribution controls
 
-`load_fixed_atom_distrib` and `save_fixed_atom_distrib` read or write
-`atomtypee.mat`. The normal path is deterministic; no random occupation is
-generated even though `main.m` calls `rng('shuffle')` and prints “use random
-atom distribution.”
+`distrib.m` always generates occupancy and all six masks. The normal path is
+deterministic even though `main.m` calls `rng('shuffle')` and prints “use random
+atom distribution.” The old `atomtypee.mat` save/load block has been removed.
 
-Loading a saved `atomtype_` happens after the color/site masks and `ato_s` have
-been built. Neither the masks nor `ato_s` are regenerated after loading, and
-compatibility with the loaded occupancy array is not checked. This is an
-`UNRESOLVED` consistency risk.
+Despite its legacy name, `load_fixed_atom_distrib=1` now loads the final
+`mmx/mmy/mmz` spin frame from `Relax_0.mat` in `systemgeneration.m`.
+That file is not supplied. No compatibility check against the generated
+dimensions and masks is performed. The default is zero. The remaining
+`save_fixed_atom_distrib` flag has no save action.
 
 ## Geometry and boundary behavior
 
@@ -151,7 +158,7 @@ The following remain `UNRESOLVED`:
   every future field term;
 - the physical mapping from lateral array offsets to crystallographic lattice
   vectors; and
-- finite-size convergence and edge sensitivity of domain-wall results.
+- finite-size convergence and edge sensitivity of spatial results.
 
 ## Interaction topology
 
@@ -170,11 +177,13 @@ The detailed offset selection differs among green, orange, blue, purple, red,
 and black sites. `exchangej_.m` is currently the executable source of truth for
 those selections; notebook pages 10--11 are the visual design record.
 
-The [implementation guide](structure-exchange-guide.md) supplies the complete
+The historical [implementation guide](structure-exchange-guide.md) supplies the complete
 24-entry color/interaction mapping and a worked explanation of the reversed
 `circshift` signs. The [interactive explorer](structure-exchange.html) connects
 the notebook, array masks, neighbor positions, boundary omissions, and exact
-source excerpts. Its coordinates are array indices, not reconstructed
+pre-import source excerpts. Exchange topology remains equivalent after
+shift-variable renaming; its DMI view describes the older implementation.
+Its coordinates are array indices, not reconstructed
 crystallographic positions. The author's confirmed notebook `0`/`1` box labels
 are distinct from the code's occupied/empty mask values.
 
@@ -210,17 +219,21 @@ This interpretation agrees with the field convention documented in the local
 its components must be supplied in tesla under the current implementation.
 
 The conservative energy consistent with the implemented exchange and
-anisotropy fields is
+second-order anisotropy fields is
 
 $$
-\mathcal{H}_{\mathrm{ex+ani}}
+\mathcal{H}_{\mathrm{ex+2}}
 =\frac{1}{2}\sum_{i\ne j}J_{ij}\mathbf{s}_i\cdot\mathbf{s}_j
--\sum_i\left(K_1s_{iz}^2+K_2s_{iz}^4\right),
+-\sum_i K_1s_{iz}^2,
 $$
 
 when the pair sum contains both directed occurrences of each bond. In this
 sign convention, positive $J$ favors antiparallel alignment and negative $J$
 favors parallel alignment.
+
+The fourth-order term is no longer active. A consistent complete energy for
+the imported sixth-order field and DMI is `UNRESOLVED`; the expression above
+is not the complete imported Hamiltonian.
 
 ### Exchange
 
@@ -238,42 +251,57 @@ has not yet been tested.
 
 ### Anisotropy
 
-The implemented anisotropy is aligned with array $z$:
+The imported anisotropy field is exactly source `integrate_llg.m`, lines
+162-176. Define $q=\sin(\arccos s_z)$, $u=s_x/q$, $v=s_y/q$; the source
+sixth-order numerators are
 
 $$
-\mathbf{B}_{\mathrm{ani},i}
-=\frac{1}{\mu_s}
-\left(0,0,2K_1s_{iz}+4K_2s_{iz}^3\right).
+A_x=12h_6q^5uv^2(2v+1)(2v-1)(-3+4v^2),\quad
+A_y=-12h_6q^5u^2v(2v+1)(2v-1)(-3+4v^2),
 $$
 
-It corresponds to the on-site energy
-$-K_1s_{iz}^2-K_2s_{iz}^4$. The relationship between array $z$ and the exact
-crystallographic axis needs an explicit source locator.
+$$
+A_z=-6h_6s_zq^4(-1+2u^2)(16u^4-16u^2+1).
+$$
+
+The source multiplies these by `mask=~(abs(mz)==1)` and divides by `mus`,
+then adds $2K_1s_z/\mu_s$ to z. These are a transcription of code, not a
+new energy derivation. The confirmed +z NaN defect (ANI-01) is retained.
+
+
+The second-order term uses `Ksim1=-8e-22 J`, and the sixth-order coefficient
+is `hk6=1.76e-27 J`. Their material provenance, the sixth-order energy
+derivation, and the physical axis mapping remain `UNRESOLVED`.
 
 ### Dzyaloshinskii--Moriya interaction
 
-`dmi.m` constructs two site-dependent interlayer sums named `nex` and `pre`.
-The file warns that increasing the MATLAB layer index corresponds to decreasing
-physical $z$, and that the selected neighbors mix the exchange $J_3$ and $J_4$
-topologies.
+`dmi.m` constructs signed interlayer sums `nex` and `pre`. Its comments
+associate `nex` with `i-1` and physical positive z, and `pre` with `i+1` and
+physical negative z. Unlike the historical explorer, the source sums contain
+mixed signs and additional unshifted adjacent-layer terms.
 
-Writing the two constructed sums as
-$\mathbf{S}_{\mathrm{nex},i}$ and $\mathbf{S}_{\mathrm{pre},i}$, the implemented
-field is
+Writing the signed source sums as $\mathbf S_{\mathrm{nex}}$ and
+$\mathbf S_{\mathrm{pre}}$, the imported DMI field is
 
 $$
-\mathbf{B}_{\mathrm{DMI},i}
-=\frac{D}{\mu_s}
-\begin{bmatrix}
-S_{\mathrm{nex},y}-S_{\mathrm{pre},y}\\
--S_{\mathrm{nex},x}+S_{\mathrm{pre},x}\\
-0
-\end{bmatrix}.
+\mathbf B_D=\frac{D}{\mu_s}
+(S_{\mathrm{nex},y}+S_{\mathrm{pre},y},
+-S_{\mathrm{nex},x}-S_{\mathrm{pre},x},0).
 $$
 
-The notebook derives a related component form on page 5. The complete directed
-bond list, $\mathbf{D}_{ij}$ orientation, antisymmetry check, and energy
-derivative remain `UNRESOLVED`. Do not infer them only from the color diagram.
+
+Here `Dsim=5.6e-24 J`. The DMI script runs even when `DMIenable=0`; the flag
+then sets `Dsim=0`. All added adjacent-layer terms now use the current spin
+state. In the supplied source, three-index reads from the four-dimensional
+`mmx/mmy/mmz` histories selected the first frame of each chunk instead.
+
+**DMI-02:** on the 140-site verification lattice, the imported signed
+coefficient matrix has 934 directed nonzero entries and 544 entries with
+$C_{ij}\ne-C_{ji}$. This fails the antisymmetry condition for interpreting
+the operator as ordinary pairwise z-directed DMI under the declared energy
+convention. It is a source-formula finding, not caused by the current-state
+correction. The accepted signs are retained; physical bond assignment and
+a consistent energy derivative remain `UNRESOLVED`.
 
 ### Dipole approximation
 
@@ -296,7 +324,7 @@ $$
 This is a nearest-neighbor in-plane truncation, not a full long-range dipolar
 sum. Interlayer dipole terms and more distant lateral sites are omitted. The
 field is recomputed every 50 integration steps and held at its previous value
-between updates.
+between updates when enabled. The imported default is `dipolemode=0`.
 
 ### External field and total field
 
@@ -366,6 +394,13 @@ conversion implicit in the usual SI expression is canceled numerically. This
 unit interpretation should be checked explicitly before nonzero-current
 results are used.
 
+The default SOT current is `6e12 A/m^2`, with both components enabled and
+polarization approximately `[-0.866,-0.5,0]`. With
+`ms=24*mus/(sqrt(3)*a^2*c)` and `tz=c*natomH/6`, the amplitudes are
+`BDSOT=0.18648 T` and `BFSOT=5*BDSOT=0.93239 T`. STT is disabled and its
+current is zero. The inherited `BFSTT=chi*BDSTT` uses the SOT ratio rather
+than `chiSTT`; this nondefault-path limitation is retained, not repaired.
+
 ## Numerical integration
 
 Three update kernels are selectable:
@@ -392,24 +427,34 @@ It does not guard nonzero STT. Choosing Heun or predictor-corrector with a
 nonzero STT amplitude therefore omits that torque silently. This is a known
 implementation limitation.
 
-The trajectory is processed in GPU chunks. Every `savetstep`-th in-chunk state
-is gathered to CPU arrays `mmx_`, `mmy_`, and `mmz_`; after the loop, these are
-masked and renamed `mmx`, `mmy`, and `mmz`. Exact saved-time alignment at chunk
-boundaries has not been verified.
+The trajectory is processed in GPU chunks. Each kernel result is explicitly
+gathered into CPU trajectory buffers. Every `savetstep`-th in-chunk state is
+copied to `mmx_`, `mmy_`, and `mmz_`; after the loop these are masked and
+renamed `mmx`, `mmy`, and `mmz`.
+
+**TIME-01:** each nominal 10,000-step chunk stores the initial state and
+performs 9,999 updates. At the default 150 chunks and `1e-16 s` timestep,
+actual evolution is 149.985 ps rather than 150 ps. The time vector begins at
+`tstep` although the first saved state is at elapsed time zero; the time-label
+mismatch accumulates across chunks. The requested final-time state is not
+saved. These inherited behaviors are explicitly retained.
+
+**OUT-01:** DMI fields evaluated from state `ct1` are recorded at `ct1+1`.
+The first field slot stays zero. With stride 5000, each chunk saves slots
+1 and 5001: an unwritten zero and the field evaluated from spin slot 5000.
+Thus 150 of the 300 default saved DMI frames are unfilled zeros, and the
+other 150 lag the corresponding spins by one timestep. This source defect
+is explicitly retained and is separate from the corrected DMI state reads.
 
 ## Initial conditions
 
-When `dwcalc=1`, the lattice is divided at the midpoint of the second lateral
-index. For odd layers, the two halves use in-plane azimuths $185^\circ$ and
-$5^\circ$ with polar angle $90^\circ$. For even layers, the azimuths are
-$5^\circ$ and $185^\circ$ with polar angle $85^\circ$. This creates the
-implemented two-domain initial state with a small even-layer out-of-plane
-component.
+The default has no domain wall. All occupied sites use polar angle
+$90^\circ$; odd layers use azimuth $0^\circ$ and even layers use
+$180^\circ$, giving alternating +x/-x directions up to trigonometric
+roundoff. Empty entries are zero. The old `dwcalc` branch is removed.
+The optional restart uses the last saved spin frame from `Relax_0.mat`.
 
-When `dwcalc=0`, all occupied sites use polar angle $90^\circ$; odd and even
-layers use azimuths $210^\circ$ and $30^\circ$, respectively.
-
-The correspondence between these array angles and the experimentally relevant
+The correspondence between these array angles and experimentally relevant
 hematite magnetic domains is `UNRESOLVED`.
 
 ## Checked-in parameter set
@@ -419,21 +464,21 @@ here using the exact SI electron volt and are not separate inputs.
 
 | Quantity | MATLAB value | Derived/readable value | Evidence status |
 |---|---:|---:|---|
-| Interlayer scale `c` | $1.3882\times10^{-9}\ \mathrm{m}$ | $1.3882\ \mathrm{nm}$ | Implemented; comment cites Ref. [2], exact locator unresolved |
-| Effective thickness `tz` | `natomH*c` | $8.3292\ \mathrm{nm}$ for `natomH=6` | Implemented modeling choice |
+| Lattice scale `c` | $1.3882\times10^{-9}\ \mathrm{m}$ | $1.3882\ \mathrm{nm}$ | Imported; exact source locator unresolved |
+| Lattice scale `a` | $5.067\times10^{-10}\ \mathrm{m}$ | $0.5067\ \mathrm{nm}$ | Imported; exact source locator unresolved |
+| Effective thickness `tz` | `natomH*c/6` | $1.3882\ \mathrm{nm}$ for `natomH=6` | Imported; physical normalization unresolved |
 | $J_1$ | $1.3740\times10^{-21}\ \mathrm{J}$ | $8.5758\ \mathrm{meV}$ | Implemented; provenance conflict |
 | $J_2$ | $-1.1696\times10^{-21}\ \mathrm{J}$ | $-7.3001\ \mathrm{meV}$ | Implemented; provenance conflict |
 | $J_3$ | $4.0413\times10^{-21}\ \mathrm{J}$ | $25.2238\ \mathrm{meV}$ | Implemented; provenance conflict |
 | $J_4$ | $2.8041\times10^{-21}\ \mathrm{J}$ | $17.5018\ \mathrm{meV}$ | Implemented; provenance conflict |
-| $K_1$ | $1.8073\times10^{-25}\ \mathrm{J}$ | $0.001128\ \mathrm{meV}$ | Implemented; source locator unresolved |
-| $K_2$ | $1.7624\times10^{-27}\ \mathrm{J}$ | $0.0000110\ \mathrm{meV}$ | Implemented; source locator unresolved |
-| $D$ | $-4.8065\times10^{-23}\ \mathrm{J}$ | $-0.3000\ \mathrm{meV}$ | Implemented; sign/topology source unresolved |
+| $K_1$ | $-8\times10^{-22}\ \mathrm{J}$ | $-4.9932\ \mathrm{meV}$ | Imported; source locator unresolved |
+| `hk6` | $1.76\times10^{-27}\ \mathrm{J}$ | $0.000010985\ \mathrm{meV}$ | Imported; energy mapping and source locator unresolved |
+| $D$ | $5.6\times10^{-24}\ \mathrm{J}$ | $0.034953\ \mathrm{meV}$ | Imported; sign/topology source unresolved; DMI-02 |
 | $g$ | $2$ | $\gamma\approx1.7590\times10^{11}\ \mathrm{rad\,s^{-1}\,T^{-1}}$ | Implemented |
 | $\mu_s$ | $4.2313\mu_B$ | $3.9241\times10^{-23}\ \mathrm{J\,T^{-1}}$ | Implemented; source locator unresolved |
-| Volume length `d` | $0.35\ \mathrm{nm}$ | $M_s=\mu_s/d^3\approx9.1524\times10^5\ \mathrm{A\,m^{-1}}$ | Implemented modeling choice; physical meaning unresolved |
+| Magnetization density `ms` | `24*mus/(sqrt(3)*a^2*c)` | $1.5256\times10^6\ \mathrm{A\,m^{-1}}$ | Imported; physical normalization unresolved |
 | Dipole distance | $0.5067\ \mathrm{nm}$ | three retained in-plane neighbors | Implemented; source locator unresolved |
 | Gilbert damping $\alpha$ | $0.001$ | dimensionless | Implemented; provenance unresolved |
-| Temperature `T` | $100\ \mathrm{K}$ | unused | Implemented variable only |
 | Time step | $10^{-16}\ \mathrm{s}$ | $0.1\ \mathrm{fs}$ | Implemented; convergence unresolved |
 
 The four exchange values convert to the LDA+$U$ numbers copied in the left-hand
@@ -449,17 +494,18 @@ $J_1$--$J_4$ must be resolved before the comment or values are changed.
 | Hematite crystal/site motif | Three-layer repeating occupancy and six color-labeled site masks | `distrib.m`; notebook pp. 1, 7--11 | Page-10 diagram/implementation agreement verified for a $3\times13\times3$ core; `UNRESOLVED`: no lattice-vector/basis table with exact paper locator |
 | Exchange shells | Site-dependent $J_1$--$J_4$ offset sums; intended bulk multiplicities $1,3,3,6$ | `exchangej_.m`; notebook pp. 2--4, 9--11 | Notebook/code agreement and reciprocity passed the finite-lattice audit above; `UNRESOLVED`: physical shell distances and source mapping |
 | Exchange values | Four values listed above | `main.m`; notebook pp. 2--3 | `UNRESOLVED`: code comment and copied table provenance conflict |
-| Anisotropy | $-K_1s_z^2-K_2s_z^4$ | `integrate_llg.m` | `UNRESOLVED`: axis and parameter source locators missing |
-| DMI | Interlayer component field using mixed $J_3/J_4$ neighbor sets | `dmi.m`; `integrate_llg.m`; notebook pp. 4--5, 8 | `UNRESOLVED`: directed bonds and antisymmetry not verified |
+| Anisotropy | Second-order axial term plus source sixth-order field | `integrate_llg.m` | `UNRESOLVED`: sixth-order energy, axis and parameter provenance; ANI-01 retained |
+| DMI | Signed interlayer sums including unshifted adjacent-layer terms | `dmi.m`; `integrate_llg.m` | `UNRESOLVED`: physical bonds and energy mapping; finite-lattice antisymmetry fails (DMI-02) |
 | Dipole | Three same-layer neighbors at $0.5067\ \mathrm{nm}$, refreshed every 50 steps | `dipole_.m`; notebook p. 6 | `UNRESOLVED`: truncation justification and source locator missing |
-| LLG/LLGS | Fixed-length LL form in tesla convention | GPU kernels; local equation reference | Implemented convention; kernel-level analytical tests missing |
+| LLG/LLGS | Fixed-length LL form in tesla convention | GPU kernels; local equation reference | Focused RK4 precession, damping, and torque checks passed; general convergence unresolved |
 | Boundary | Empty two-cell lateral padding; omitted out-of-range layer bonds | `distrib.m`, `exchangej_.m`, `dmi.m` | Finite-lattice notebook/code agreement audited above; broader coordination and finite-size tests missing |
-| Domain-wall initial state | Two lateral domains with layer-dependent angles | `systemgeneration.m` | Implemented; physical domain mapping unresolved |
+| Initial state | Uniform within each layer, odd/even +x/-x | `systemgeneration.m` | Imported initial condition; physical domain mapping unresolved |
 
 ## Validation requirements
 
-No automated tests or accepted benchmark outputs were found. One focused
-manual structure check has passed: the corrected page-10 diagram agrees with
+No maintained automated test suite or accepted production benchmark is
+provided. Focused import checks are recorded below. An earlier manual
+structure check passed: the corrected page-10 diagram agrees with
 all six `distrib.m` site masks for a $3\times13\times3$ unpadded core. Before
 using the model for quantitative claims, add or perform the remaining checks
 in order:
@@ -481,7 +527,7 @@ in order:
 6. **Boundaries:** compare the implicit padded-open behavior with an explicit
    neighbor table and test edge coordination and DMI truncation.
 7. **Simulation outputs:** verify chunk-boundary time alignment, sampling,
-   domain-wall observables, and non-destructive output naming.
+   spatial observables, and non-destructive output naming.
 8. **Scientific comparison:** establish size convergence and compare an
    appropriate observable with a source-supported analytical, experimental, or
    published numerical reference.
@@ -492,12 +538,14 @@ table.
 
 ## Known limitations and open decisions
 
-- `thermalenable` and `T` do not generate thermal noise.
-- The default distribution is deterministic; fixed-distribution loading does
-  not validate compatibility with the site masks.
+- No thermal field is implemented; unused `thermalenable` and `T` settings
+  were removed.
+- The default distribution is deterministic; restart spin arrays are not
+  checked for compatibility with generated dimensions and site masks.
 - No explicit lattice-vector, coordinate, or bond-table data structure exists.
 - The exchange provenance and shell mapping are unresolved.
-- DMI bond orientation and antisymmetry are not independently tested.
+- Imported DMI coefficients fail the finite-lattice antisymmetry check
+  (DMI-02); physical bond orientation and energy consistency remain unresolved.
 - `UNRESOLVED` — notebook symmetry reasoning: $C_3$ symmetry cancels the
   in-plane components in the symmetry-related sum; it does not force every
   individual bond's DMI vector to lie along $z$, as Dannegger et al., Fig. 4,
@@ -511,10 +559,49 @@ table.
   function signature and is not presently a verified runnable path.
 - Heun and predictor-corrector omit torque arguments; the runtime guard does
   not protect against nonzero STT in those modes.
-- Exact saved-time alignment across GPU chunks is unverified.
-- `finalnew.mat` overwrites an existing output and stores the full workspace.
-- No regression tests, convergence baselines, or documented validated run are
-  present.
+- ANI-01, OUT-01, and TIME-01 remain explicitly deferred; see the descriptions
+  above and the accepted decision record in `diff.md`.
+- `final.mat` overwrites an existing output and stores the remaining workspace.
+- No accepted production baseline or scientific convergence validation is
+  provided by the import checks.
+
+## Import verification
+
+Focused checks on 2026-10-15 used MATLAB R2024b Update 1 (24.2.0.2740171,
+PCWIN64) and an NVIDIA GeForce RTX 3060 Laptop GPU, compute capability 8.6,
+6,441,926,656 bytes reported total memory. They establish implementation
+properties for these cases, not material-model validity.
+
+| Check | Result |
+|---|---|
+| Imported source text | All 13 files match `code_20261013` after line-ending normalization except the 18 approved DMI substitutions |
+| Structure and initialization | 5 x 9 x 6 core, 9 x 13 x 6 padded, 140 occupied sites; all six masks match pre-import code; occupied odd/even layers initialize along +x/-x |
+| Shift and exchange/dipole equivalence | All 30 shifts retain the same offsets; complete exchange/dipole text matches after verified renames |
+| DMI current-state correction | All six masks, surfaces, and edges agree with the independently calculated change from stale source reads; changing history alone leaves the corrected result exactly unchanged |
+| DMI signed operator | 934 directed nonzeros, zero diagonal; **544 antisymmetry mismatches**, recorded as DMI-02 |
+| RK4 kernel | Scalar kernel agrees with independent vector-form fixed-field RK4 for zero torque, isolated SOT/STT DL/FL, and combined channels; maximum component error 0 in this run; analytical precession and damping direction passed |
+| Accepted source defects | +z anisotropy NaN reproduced; source DMI-history index trace and nominal/actual update-count mismatch preserved |
+| Small GPU/output smoke | 140 occupied sites, 2 chunks of 7 updates, 8 saved frames; finite spins, zero empty sites, maximum occupied-spin norm error $1.11\times10^{-16}$; expected cleanup and unfilled DMI frames preserved |
+
+For example, the DMI coefficient pair between padded sites `(4,3,2)` and
+`(3,3,1)` has $C_{ij}=C_{ji}=+1$, rather than opposite signs. This finding
+does not authorize a new sign change; the accepted source formulas remain.
+
+The disposable local harness and old MATLAB snapshots are in ignored
+`.review-20261013/`. Commands from the WSL workspace were:
+
+```bash
+matlab -batch "run('C:/Users/zzf-m/OneDrive/code_softwares/spin_dynamics/Fe2O3/.review-20261013/verify_structure.m')"
+matlab -batch "run('C:/Users/zzf-m/OneDrive/code_softwares/spin_dynamics/Fe2O3/.review-20261013/verify_import.m')"
+matlab -batch "run('C:/Users/zzf-m/OneDrive/code_softwares/spin_dynamics/Fe2O3/.review-20261013/verify_gpu.m')"
+```
+
+The GPU run used a scratch copy of `main.m` with core dimensions 5 x 9 x 6,
+`gpusave=8e-16 s`, `gpurun_number=2`, and `savetstep=2`; other source
+defaults, including `tstep=1e-16 s`, were retained. Its result is isolated at
+`.review-20261013/smoke/final.mat`. Production defaults and existing result
+files were not changed by the smoke run. No full default simulation,
+timestep/size convergence study, or published-physics benchmark was run.
 
 ## References and local records
 

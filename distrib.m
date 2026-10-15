@@ -141,10 +141,3 @@ ato_s= abs(atomtype_-1);
 clear startL start2L start3L new_atomtype_layp new_atomtype_layor new_atomtype_laygr new_atomtype_
 clear new_natomW new_natomL
 clear tmp ctW ctL ctz
-if load_fixed_atom_distrib
-    clear atomtype_
-    load('atomtypee.mat','atomtype_');
-elseif save_fixed_atom_distrib%save debug data
-    save('atomtypee.mat','atomtype_');%change this to save(ddebugfilename);
-    error('distribution mat file has been saved, run the program again by setting load_fixed_atom_distrib=1')
-end

@@ -1,3 +1,9 @@
 manuscript*
 plan.md
 Alpha-Fe2O3.pdf
+
+.review-20261013/
+.sisyphus/
+.venv/
+.ruff_cache/
+**/__pycache__/

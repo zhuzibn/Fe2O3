@@ -1,6 +1,7 @@
-%LLG solver for gpu calculation using Heun Method
+%LLG solver for gpu calculation using rk4
 % "clear xx" is not allowed in gpu version of arrayfun
-function [sxx,syy,szz]=atomgpurk4(ssx,ssy,ssz,psjSHEx,psjSHEy,psjSHEz,psjSTTx,psjSTTy,psjSTTz,scal,alph,ts,hhx,hhy,hhz,BdSOT,BfSOT,BdSTT,BfSTT)
+function [sxx,syy,szz]=atomgpurk4(ssx,ssy,ssz,psjSHEx,psjSHEy,psjSHEz,psjSTTx,psjSTTy,psjSTTz,...
+    scal,alph,ts,hhx,hhy,hhz,BdSOT,BfSOT,BdSTT,BfSTT)
 %cross(u,v)=(u2v3-u3v2)i+(u3v1-u1v3)j+(u1v2-u2v1)k
 %------------------kk1--------------------------
 %-cross(sss,hh)=cross(hh,sss) Beff FLT

@@ -6,9 +6,7 @@ constantfile;
 clear gam
 rk4=1;%1:rk4,0:heun Method,2:4th predictor-corrector
 DMIenable=1;%enable DMI interaction?
-dwcalc=1;%1:simulate dw motion 0: no domain wall
-thermalenable=0;%enable thermal field?
-dipolemode=1;%enable dipole field?
+dipolemode=0;%enable dipole field?
 %% use fixed or randomatom distribution
 load_fixed_atom_distrib=0;%load fixed atom distribution
 save_fixed_atom_distrib=0;%save fixed atom distribution
@@ -26,47 +24,52 @@ end
 %% optional control
 %gpuDevice(1)%select GPU device
 %% system generation
-natomW=100;natomL=100;natomH=6;
-c=13.882e-10;% Phy. Rev.B.107,184426 (2023)
-h=natomH*c;
+natomW=20;natomL=20;natomH=6;
 systemgeneration();
 %% FiM parameters
-Ksim1=1.8073e-25;% second-order anisotropy
-Ksim2=1.7624e-27;% forth-order anisotropy
-J1=1.3740e-21;J2=-1.1696e-21;J3=4.0413e-21;J4=2.8041e-21;%[Phy. Rev.B.107,184426 (2023)]
+Ksim1=-8e-22;% 2ed-order
+hk6=1.76e-27;% 6th-order
+J1=1.3740e-21;
+J2=-1.1696e-21;
+J3=4.0413e-21;
+J4=2.8041e-21;%[Phy. Rev.B.107,184426 (2023)]
 g=2;%g-factor
 gam=g*mub/(hbar*ele);%1/(s.T)
 mus=4.2313*mub;
-d=0.35*1e-9;%lattice constant
-tz=h;
-ms=mus/d^3;%[A/m], saturation magnetization
-if DMIenable
-    Dsim=-4.8065e-23;%[J], DMI
+a=5.067e-10;
+c=13.882e-10;
+tz=c/6*natomH;
+ms=12*mus/c/a^2/sqrt(3)*2;%[A/m], saturation magnetization
+if DMIenable 
+    Dsim=5.6e-24;     
 else
     Dsim=0;
 end
 alp=0.001;%Gilbert damping
 %% electrical parameters
-jcSOT=0e9;%[A/m2]
+jcSOT=6e12;%[A/m2]
 jcSTT=0e9;%[A/m2]
-Hext=[0,0,0e-3];%
+Hext=[0,0,0];%
 %% SOT parameters
-SOT_DLT=0;%1(0),enable(disable) SOT damping torque
-SOT_FLT=0;%1(0),enable(disable) SOT field-like torque
-psjSHE=[0,1,0];%spin flux polarization
+SOT_DLT=1;%1(0),enable(disable) SOT damping torque
+SOT_FLT=1;%1(0),enable(disable) SOT field-like torque
+psj_theta=90/180*pi;
+psj_phi=210/180*pi;
+%spin flux polarization
+psjSHE=[cos(psj_phi)*sin(psj_theta),sin(psj_phi)*sin(psj_theta),cos(psj_theta)];
 psjSHEx=psjSHE(1);
 psjSHEy=psjSHE(2);
 psjSHEz=psjSHE(3);
 thetaSH=0.2;%spin hall angle
 if SOT_FLT
-    chi=0.2;%ratio of FLT/DLT
+    chi=5;%ratio of FLT/DLT
 else
     chi=0;
 end
 BDSOTRE=SOT_DLT*hbar/2*thetaSH*jcSOT/(ms*tz);%[T]
 BDSOTTM=SOT_DLT*hbar/2*thetaSH*jcSOT/(ms*tz);
 %% STT parameters
-STT_DLT=1;%1(0),enable(disable) SOT damping torque
+STT_DLT=0;%1(0),enable(disable) SOT damping torque
 STT_FLT=0;%1(0),enable(disable) SOT field-like torque
 psjSTT=[0,0,1];%spin flux polarization
 psjSTTx=psjSTT(1);
@@ -80,21 +83,15 @@ else
 end
 BDSTTRE=STT_DLT*hbar/2*etaSTT*jcSTT/(ms*tz);%[T]
 BDSTTTM=STT_DLT*hbar/2*etaSTT*jcSTT/(ms*tz);
-%% other parameters
-T=100;%[K]
 %% time control
 gpusave=1e-12;%how often saving gpu data
-gpurun_number=200;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 ;
-tstep=1e-16;
-savetstep=1000;%this is used to reduce data size
+gpurun_number=150;%run time /ps                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ;
+tstep=1e-16;%one step is 0.1fs
+savetstep=5000;%save data every ~ loops
 gpusteps=round(gpusave/tstep);
-runtime=gpurun_number*gpusave;%second run for dw motion
+runtime=gpurun_number*gpusave;
 totstep=round(runtime/tstep);
-t=linspace(tstep,runtime,totstep);%This need to be optimized
-
-%% increase data (optional)
-% saven=200;
-% runtime=saven*gpusave;%runtime for this code
+t=linspace(tstep,runtime,totstep);
 
 if ~mod(gpusteps,savetstep)==0
     error('gpusteps should be multiple integer times of savetstep, otherwise there might be errors')
@@ -115,19 +112,24 @@ clear hdipolex3 hdipoley3 hdipolez3
 clear hdipolex4 hdipoley4 hdipolez4  
 clear hdipolex5 hdipoley5 hdipolez5  
 clear hdipolex6 hdipoley6 hdipolez6  
-clear mmx_0n1 mmy_0n1 mmz_0n1
-clear mmx_0p1 mmy_0p1 mmz_0p1
-clear mmx_0n2 mmy_0n2 mmz_0n2
-clear mmx_0p2 mmy_0p2 mmz_0p2
-clear mmx_n10 mmy_n10 mmz_n10
-clear mmx_p10 mmy_p10 mmz_p10
-clear mmx_n1n1 mmy_n1n1 mmz_n1n1
-clear mmx_p1n1 mmy_p1n1 mmz_p1n1
-clear mmx_p1p1 mmy_p1p1 mmz_p1p1
+clear mmx_l1 mmy_l1 mmz_l1
+clear mmx_r1 mmy_r1 mmz_r1
+clear mmx_l2 mmy_l2 mmz_l2
+clear mmx_r2 mmy_r2 mmz_r2
+clear mmx_u1 mmy_u1 mmz_u1
+clear mmx_d1 mmy_d1 mmz_d1
+clear mmx_u1l1 mmy_u1l1 mmz_u1l1
+clear mmx_d1l1 mmy_d1l1 mmz_d1l1
+clear mmx_d1r1 mmy_d1r1 mmz_d1r1
 clear shift_matx_black shift_matx_blue shift_matx_gr shift_matx_or
 clear shift_matx_purple shift_matx_red
 clear shift_maty_black shift_maty_blue shift_maty_gr shift_maty_or
 clear shift_maty_purple shift_maty_red
 clear shift_matz_black shift_matz_blue shift_matz_gr shift_matz_or
-clear shift_matz_purple shift_matz_red
-save('finalnew.mat')
+clear shift_matz_purple shift_matz_red BDSTTTM BDSTTRE cosphi costheta 
+clear atomtype_layer3red atomtype_layer3black atomtype_layer2p sxx syy szz
+clear mmx_u1r1 mmy_u1r1 mmz_u1r1
+clear atomtype_layer1or atomtype_layer1gr atomtype_layer2blue
+clear mmxtmp mmytmp mmztmp
+clear hdmi_x hdmi_y hdmi_z
+save('final.mat')

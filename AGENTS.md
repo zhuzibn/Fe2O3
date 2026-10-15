@@ -37,8 +37,10 @@ parameter, or benchmark.
 - Exchange convention: the implemented field is
   $\mathbf{B}_{\mathrm{ex},i}=-(1/\mu_s)\sum_jJ_{ij}\mathbf{s}_j$; positive
   $J$ favors antiparallel alignment under the corresponding energy convention.
-- Anisotropy convention: the implemented on-site energy is
-  $-K_1s_z^2-K_2s_z^4$.
+- Anisotropy convention: the implemented second-order energy is $-K_1s_z^2$;
+  the additional `hk6` field is preserved from `code_20261013`. Its complete
+  energy/field mapping remains unresolved; use `docs/model-methodology.md`
+  for the implemented formula and known pole defect.
 - Conservative fields, nonconservative torques, integration, and simulation
   orchestration must remain distinguishable even though the current scripts
   are not yet architecturally separated.
@@ -93,8 +95,8 @@ same evidence and approval as a code change.
   direction and physical $z$.
 - Do not call the padded `circshift` construction periodic without a verified
   neighbor audit. The occupied core currently sees empty padding laterally.
-- Do not enable thermal dynamics through `thermalenable` alone; no thermal
-  field is currently implemented.
+- No thermal field is currently implemented; the imported code has no
+  `thermalenable` control.
 - Only `atomgpurk4.m` accepts the SOT/STT-labeled torque arguments. Do not claim
   torque support for the Heun or predictor-corrector kernels.
 - Do not claim that the predictor-corrector selection is runnable until its RK4
@@ -111,7 +113,7 @@ The default run is GPU-dependent and potentially expensive. Do not launch the
 full default simulation merely as a syntax check. Prefer small deterministic
 verification cases defined in an approved plan.
 
-`main.m` writes `finalnew.mat` without prompting. Tests and candidate runs must
+`main.m` writes `final.mat` without prompting. Tests and candidate runs must
 use a separate, non-destructive output path and must not overwrite a user's
 existing result or accepted baseline. Do not add generated `.mat` files to Git
 unless the user explicitly approves a documented baseline policy.

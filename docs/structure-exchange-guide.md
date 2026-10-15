@@ -1,6 +1,13 @@
 # From colored sites to exchange sums
 
-This guide explains the existing `distrib.m` and `exchangej_.m` implementation
+This guide preserves the implementation before the `code_20261013` import,
+at commit `d0ab252`. Atom masks and exchange topology remain equivalent;
+shift names, source excerpts, and line numbers are historical. The DMI
+formulas and signs below do not describe the imported code. Source-file links
+open current files. See [current methodology](model-methodology.md) for the
+replacement and known issues.
+
+This guide explains the earlier `distrib.m` and `exchangej_.m` implementation
 using the author's interpretation of notebook pages 10–11. It does not change
 the Class 4, fixed-length LLG/LLGS model or independently establish its physical
 crystallography, shell assignments, or material parameters.
@@ -297,6 +304,7 @@ unresolved; these diagrams explain implemented indexing and field assembly.
 
 The MATLAB files remain the executable source of truth. The explorer's
 neighbor table and embedded source excerpts are documentation snapshots.
-If these scripts change, review this guide and `structure-exchange.js`, refresh
-the source excerpts, and repeat the notebook/operator comparison. Do not
-remove the physical-evidence gaps solely because a visualization looks right.
+This version is retained as a historical snapshot, including its old DMI view.
+A future update to depict the imported DMI must revise the bond table, signs,
+source excerpts, and notebook/operator comparison together. Do not remove
+physical-evidence gaps solely because a visualization looks right.
