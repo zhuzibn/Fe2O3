@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hematite · notebook structure in 3D</title>
+<style>
+  :root { color-scheme:light; --paper:#f4f0e6; --ink:#16212a; --line:#cfc6b5; --muted:#52616b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink); font:17px/1.5 Georgia,serif; }
+  main { max-width:1440px; padding:32px; margin:auto; }
+  a { color:#125d88; text-underline-offset:3px; }
+  h1 { font-size:clamp(36px,5vw,65px); font-weight:normal; line-height:1.08; margin:12px 0; }
+  h2 { font-size:23px; font-weight:normal; margin:0 0 12px; }
+  p { margin:10px 0; }
+  .eyebrow,.small,label,button,select,output { font-family:"Segoe UI",sans-serif; }
+  .eyebrow { font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .small { font-size:13px; color:var(--muted); }
+  .note { background:#fff9ec; border-left:3px solid #ae6633; padding:10px 16px; max-width:1040px; }
+  .workspace { display:grid; grid-template-columns:minmax(0,1fr) 280px; margin-top:24px; border:1px solid var(--line); background:#fffdf8; }
+  .stage { min-width:0; position:relative; }
+  canvas { display:block; width:100%; height:660px; background:radial-gradient(ellipse at 50% 50%,#fffefa,#eee9dc); touch-action:none; cursor:grab; }
+  canvas:active { cursor:grabbing; }
+  .stage-caption { border-top:1px solid var(--line); padding:12px 20px; min-height:64px; }
+  aside { padding:20px; border-left:1px solid var(--line); }
+  fieldset { border:0; padding:0; margin:0 0 24px; }
+  legend { font-size:20px; margin-bottom:10px; }
+  label { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:10px 0; font-size:14px; }
+  label.check { justify-content:flex-start; }
+  input[type=range] { width:135px; accent-color:#81531e; }
+  select,button { background:#fffdf8; color:var(--ink); border:1px solid #8d969a; border-radius:3px; padding:8px; font-size:14px; }
+  button { cursor:pointer; }
+  select { min-width:70px; }
+  .buttons { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+  .legend { display:flex; flex-wrap:wrap; gap:18px; padding:12px 0; }
+  .legend span { display:flex; align-items:center; gap:7px; }
+  .dot { width:12px; height:12px; display:inline-block; border-radius:50%; }
+  .context { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:24px; }
+  .context section { padding:22px; border:1px solid var(--line); }
+  details { margin-top:24px; padding:18px; border:1px solid var(--line); }
+  summary { cursor:pointer; }
+  details img { display:block; width:100%; max-width:900px; margin:18px auto; }
+  :focus-visible { outline:3px solid #125d88; outline-offset:3px; }
+  footer { border-top:1px solid var(--line); margin-top:24px; padding-top:14px; }
+  @media(max-width:850px) { main { padding:18px; } .workspace,.context { grid-template-columns:1fr; } aside { border-left:0; border-top:1px solid var(--line); } canvas { height:480px; } fieldset { margin-bottom:16px; } input[type=range] { width:55%; } }
+  @media print { aside { display:none; } .workspace,.context { display:block; } canvas { height:600px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Notebook page 1 / interactive schematic</div>
+    <h1>A cell. Then a crystal.</h1>
+    <p>Rotate the Fe-column structure, inspect a site, and repeat the prism in three directions.</p>
+    <p><a href="structure-exchange.html">Array &amp; exchange explorer</a> · <a href="Alpha-Fe2O3-notebook.html">Notebook atlas</a> · <a href="structure-exchange-guide.md#7-3d-notebook-schematic">About this view</a></p>
+    <p class="note"><strong>Schematic, as requested.</strong> This redraws the arrangement in the notebook's first figure. Vertical spacing and aspect ratio are illustrative, not refined atomic coordinates. It is not a structure file or a reconstruction of the MATLAB lattice.</p>
+  </header>
+  <noscript><p>JavaScript is needed for the 3D view. The original notebook figure and explanation are available below.</p></noscript>
+  <div class="workspace">
+    <div class="stage">
+      <canvas id="crystal" tabindex="0" role="img" aria-label="Rotatable schematic of hematite Fe columns. Drag or use arrow keys to rotate; select a sphere to inspect its illustration label."></canvas>
+      <div class="stage-caption"><p id="selection" aria-live="polite">Select an Fe sphere to inspect its illustration label.</p><p class="small">Drag to rotate · arrow keys rotate when the view is focused · use Zoom to magnify · c points up in the reference view</p></div>
+    </div>
+    <aside aria-label="Structure view controls">
+      <fieldset><legend>Repeat the cell</legend>
+        <label for="repeat-a">Along a₁<select id="repeat-a"><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+        <label for="repeat-b">Along a₂<select id="repeat-b"><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+        <label for="repeat-c">Along c<select id="repeat-c"><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+        <p id="counts" class="small" aria-live="polite"></p>
+        <div class="buttons"><button id="single" type="button">1 × 1 × 1</button><button id="larger" type="button">2 × 2 × 2</button></div>
+      </fieldset>
+      <fieldset><legend>Camera</legend>
+        <label for="yaw">Turn<input id="yaw" type="range" min="-180" max="180" value="-25" aria-label="Camera azimuth in degrees"></label>
+        <label for="tilt">Tilt<input id="tilt" type="range" min="-85" max="85" value="15" aria-label="Camera elevation in degrees"></label>
+        <label for="zoom">Zoom<input id="zoom" type="range" min="60" max="180" value="100" aria-label="Zoom percent"></label>
+        <div class="buttons"><button id="reset" type="button">Perspective</button><button id="top" type="button">Top</button><button id="side" type="button">Side</button></div>
+      </fieldset>
+      <fieldset><legend>Show</legend>
+        <label class="check"><input id="frames" type="checkbox" checked>Cell &amp; dashed layer outlines</label>
+        <label class="check"><input id="spins" type="checkbox" checked>In-plane spin arrows</label>
+        <label class="check"><input id="labels" type="checkbox" checked>A–D labels in first prism</label>
+        <label for="color-mode">Atom colors<select id="color-mode"><option value="iron">Fe / bronze</option><option value="columns">Three column groups</option></select></label>
+        <p class="small">Column colors: 1 = charcoal, 2 = blue, 3 = orange.</p>
+        <p class="small">Oxygen is omitted, as in the notebook's first figure. Arrow lengths and positions are illustrative; no canting angle is encoded.</p>
+      </fieldset>
+    </aside>
+  </div>
+  <div class="legend small"><span><i class="dot" style="background:#ba681f"></i>Fe marker</span><span><i class="dot" style="background:#b51b87"></i>A / D arrow direction</span><span><i class="dot" style="background:#21854b"></i>B / C opposite direction</span><span>Gold ring: selected marker</span></div>
+  <div class="context">
+    <section><h2>How the drawing repeats</h2><p>The six-sided prism contains a central column and six perimeter columns. The perimeter alternates two column groups; the center gives the third. Each column carries a four-site A–D sequence. Adjacent drawn prisms share their corner columns; coincident markers are drawn only once.</p><p class="small">The displayed count includes exterior corner columns. It is a count of drawn markers, not a bulk-cell atom count or a claim about surface termination.</p></section>
+    <section><h2>How to read the labels</h2><p>A₁–D₁, A₂–D₂, and A₃–D₃ run from top to bottom within each column sequence, matching the notebook's first figure; c points upward. The numeric illustration coordinates and sequence offsets serve only to construct this schematic. Selecting a marker reports its group, letter, and repetition indices.</p><p class="small">These labels have not been assigned to the green/orange/blue/purple/red/black MATLAB masks. The array and exchange explorer remains the source for that code-level mapping.</p></section>
+  </div>
+  <details><summary>Original notebook figure and scientific sources</summary>
+    <p><a href="../Alpha-Fe2O3.pdf#page=1">Notebook page 1</a> is the visual reference, including its handwritten column labels.</p>
+    <img src="Alpha-Fe2O3-pages/page-01.jpg" alt="Notebook page 1: hexagonal Fe-column schematic with A1–D1, A2–D2, A3–D3 annotations">
+    <p>The first figure comes from Yang Cheng, Sisheng Yu, Menglin Zhu, Jinwoo Hwang, and Fengyuan Yang, <a href="https://doi.org/10.1103/PhysRevLett.124.027202">Electrical Switching of Tristate Antiferromagnetic Néel Order in α-Fe₂O₃ Epitaxial Films</a>, Physical Review Letters <strong>124</strong>, 027202 (2020), Fig. 1(a). Its caption describes the Fe-only schematic and in-plane magnetic order.</p>
+    <p><a href="https://doi.org/10.1103/PhysRevB.107.184426">Magnetic properties of hematite revealed by an ab initio parameterized spin model</a>, Physical Review B <strong>107</strong>, 184426 (2023), Fig. 1 and Sec. I, describes A,D opposite to B,C. Its Sec. III A specifies 12 Fe per conventional cell. This viewer includes shared boundary illustrations and does not report its marker count as that bulk-cell count.</p>
+  </details>
+  <footer class="small">Notebook-based illustration · one dashed outline per illustrated layer joins its staggered perimeter positions · spacing remains schematic · no MATLAB parameters or geometry are changed · works offline without external libraries</footer>
+</main>
+<script src="unit-cell.js"></script>
+</body>
+</html>

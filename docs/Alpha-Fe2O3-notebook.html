@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alpha-Fe2O3 — Annotated Model Atlas</title>
+  <style>
+    :root {
+      --paper: #f4f0e6;
+      --paper-deep: #e9e1d0;
+      --ink: #16212a;
+      --muted: #657078;
+      --line: #cfc6b5;
+      --navy: #12304a;
+      --warning: #9c3d28;
+      --green: #3f7c35;
+      --orange: #e26d22;
+      --blue: #1378b8;
+      --purple: #7b3ea1;
+      --red: #d92d27;
+      --black: #171717;
+      --shadow: 0 18px 50px rgba(25, 33, 39, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(18, 48, 74, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(18, 48, 74, 0.025) 1px, transparent 1px),
+        var(--paper);
+      background-size: 28px 28px;
+      font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    }
+
+    button, textarea { font: inherit; }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 244px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      overflow-y: auto;
+      color: #f5f0e6;
+      background:
+        radial-gradient(circle at 0 0, rgba(255,255,255,.12), transparent 38%),
+        var(--navy);
+      border-right: 1px solid rgba(255,255,255,.16);
+    }
+
+    .eyebrow,
+    .kicker,
+    .section-id,
+    .label,
+    .page-button,
+    .atom-key,
+    .status {
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: #c9d8df;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .sidebar h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: .98;
+      font-weight: 600;
+    }
+
+    .formula-mark {
+      display: block;
+      margin-top: 9px;
+      color: #f1b36f;
+      font-size: 16px;
+      font-style: italic;
+    }
+
+    .nav-title {
+      margin: 30px 0 10px;
+      color: #9fb5c0;
+      font: 700 10px/1 "Avenir Next", "Segoe UI", sans-serif;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .page-nav {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+    }
+
+    .page-button {
+      min-height: 42px;
+      color: #dfe8ec;
+      background: rgba(255,255,255,.055);
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 2px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 800;
+      transition: transform .16s ease, color .16s ease, background .16s ease;
+    }
+
+    .page-button:hover { transform: translateY(-2px); }
+
+    .page-button.active {
+      color: var(--navy);
+      background: #f0b775;
+      border-color: #f0b775;
+    }
+
+    .side-actions {
+      display: grid;
+      gap: 8px;
+      margin-top: 26px;
+    }
+
+    .side-actions button,
+    .side-actions a {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      color: #edf3f5;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,.24);
+      border-radius: 2px;
+      text-align: left;
+      text-decoration: none;
+      cursor: pointer;
+      font: 650 12px/1.3 "Avenir Next", "Segoe UI", sans-serif;
+    }
+
+    .main {
+      min-width: 0;
+      padding: 38px clamp(22px, 4vw, 64px) 60px;
+    }
+
+    .masthead {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 28px;
+      align-items: end;
+      max-width: 1480px;
+      margin: 0 auto 26px;
+    }
+
+    .kicker {
+      margin: 0 0 8px;
+      color: var(--warning);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .masthead h2 {
+      max-width: 850px;
+      margin: 0;
+      font-size: clamp(34px, 5vw, 74px);
+      line-height: .92;
+      font-weight: 500;
+      letter-spacing: -.045em;
+    }
+
+    .status {
+      max-width: 265px;
+      padding: 13px 15px;
+      color: var(--warning);
+      background: rgba(255,255,255,.42);
+      border: 1px solid var(--line);
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1.55;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-width: 1480px;
+      margin: 0 auto 24px;
+      padding: 13px;
+      background: rgba(255,255,255,.54);
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 24px rgba(25,33,39,.06);
+    }
+
+    .legend-title {
+      padding: 7px 10px 7px 2px;
+      color: var(--muted);
+      font: 800 10px/1.2 "Avenir Next", "Segoe UI", sans-serif;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .atom-key {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 9px;
+      color: var(--ink);
+      background: #fffdf7;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      flex: 0 0 11px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.14);
+    }
+
+    .green { color: var(--green); }
+    .orange { color: var(--orange); }
+    .blue { color: var(--blue); }
+    .purple { color: var(--purple); }
+    .red { color: var(--red); }
+    .black { color: var(--black); }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(360px, .92fr) minmax(470px, 1.08fr);
+      gap: 22px;
+      align-items: start;
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    .source-panel,
+    .transcript-panel {
+      background: rgba(255,253,247,.82);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      min-height: 48px;
+      padding: 10px 15px;
+      color: #e9eff1;
+      background: var(--navy);
+      font: 700 11px/1.2 "Avenir Next", "Segoe UI", sans-serif;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .panel-head a { color: #f0b775; }
+
+    .page-image-frame {
+      width: 100%;
+      height: calc(100vh - 150px);
+      min-height: 640px;
+      padding: 12px;
+      overflow: auto;
+      background: #dedbd2;
+    }
+
+    .source-page-image {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: white;
+      box-shadow: 0 4px 16px rgba(25,33,39,.16);
+    }
+
+    .page-article {
+      display: none;
+      min-height: 640px;
+      padding: clamp(22px, 3vw, 42px);
+      animation: reveal .34s ease-out both;
+    }
+
+    .page-article.active { display: block; }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(7px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-id {
+      color: var(--warning);
+      font-size: 10px;
+      font-weight: 850;
+    }
+
+    .page-article h3 {
+      margin: 7px 0 22px;
+      font-size: clamp(28px, 3.2vw, 48px);
+      line-height: 1;
+      font-weight: 500;
+      letter-spacing: -.03em;
+    }
+
+    .page-article h4 {
+      margin: 28px 0 10px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .page-article p,
+    .page-article li {
+      font-size: 16px;
+      line-height: 1.62;
+    }
+
+    .callout {
+      margin: 18px 0;
+      padding: 14px 17px;
+      background: #fffaf0;
+      border-left: 4px solid #d49a5b;
+    }
+
+    .callout.unresolved { border-color: var(--warning); }
+
+    .equation,
+    .neighbor-list {
+      margin: 15px 0;
+      padding: 16px 18px;
+      overflow-x: auto;
+      color: #17212a;
+      background: #ece7da;
+      border: 1px solid #d2c8b6;
+      font: 14px/1.65 "Cascadia Mono", "Consolas", monospace;
+      white-space: pre-wrap;
+    }
+
+    .neighbor-row {
+      display: grid;
+      grid-template-columns: 70px minmax(0, 1fr);
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px dotted #c3b9a8;
+    }
+
+    .neighbor-row:last-child { border-bottom: 0; }
+
+    .neighbor-row code {
+      color: currentColor;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .atom-label {
+      display: inline-flex;
+      align-items: center;
+      align-self: start;
+      gap: 5px;
+      font: 800 9px/1.2 "Avenir Next", "Segoe UI", sans-serif;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    table {
+      width: 100%;
+      margin: 16px 0;
+      border-collapse: collapse;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    th, td {
+      padding: 8px 7px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--navy);
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      font-size: 10px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    .mapping {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 2px solid var(--ink);
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 850;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 112px;
+      resize: vertical;
+      padding: 12px;
+      color: var(--ink);
+      background: #fffdf8;
+      border: 1px solid var(--line);
+      border-radius: 0;
+      line-height: 1.45;
+    }
+
+    textarea:focus {
+      outline: 2px solid #e6aa66;
+      outline-offset: 2px;
+    }
+
+    .save-note {
+      grid-column: 1 / -1;
+      margin: 0;
+      color: var(--muted);
+      font: 11px/1.4 "Avenir Next", "Segoe UI", sans-serif;
+    }
+
+    .warning { color: var(--warning); font-weight: 700; }
+
+    @media (max-width: 1050px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar {
+        position: relative;
+        height: auto;
+      }
+      .sidebar h1, .formula-mark, .nav-title { display: none; }
+      .page-nav { grid-template-columns: repeat(12, minmax(42px, 1fr)); overflow-x: auto; }
+      .side-actions { grid-template-columns: 1fr 1fr; margin-top: 12px; }
+      .workspace { grid-template-columns: 1fr; }
+      .page-image-frame { height: 70vh; min-height: 500px; }
+    }
+
+    @media (max-width: 660px) {
+      .main { padding: 22px 12px 40px; }
+      .masthead { grid-template-columns: 1fr; }
+      .status { max-width: none; }
+      .mapping { grid-template-columns: 1fr; }
+      .page-article { padding: 20px 16px; }
+    }
+
+    @media print {
+      .sidebar, .source-panel, .mapping, .masthead .status { display: none !important; }
+      .shell, .workspace { display: block; }
+      .main { padding: 0; }
+      .transcript-panel { box-shadow: none; border: 0; }
+      .page-article { display: block !important; page-break-after: always; }
+      body { background: white; }
+    }
+    .implementation-guide { margin-top: 32px; }
+    .implementation-guide iframe { display: block; width: 100%; height: 1150px; border: 1px solid var(--line); background: var(--paper); }
+    @media print { .implementation-guide iframe { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Notebook navigation">
+      <p class="eyebrow">Digital research folio</p>
+      <h1>Alpha-<br>Fe<sub>2</sub>O<sub>3</sub></h1>
+      <span class="formula-mark">structure → topology → field</span>
+
+      <p class="nav-title">Source page</p>
+      <nav class="page-nav" id="pageNav">
+        <button class="page-button active" data-page="1">01</button>
+        <button class="page-button" data-page="2">02</button>
+        <button class="page-button" data-page="3">03</button>
+        <button class="page-button" data-page="4">04</button>
+        <button class="page-button" data-page="5">05</button>
+        <button class="page-button" data-page="6">06</button>
+        <button class="page-button" data-page="7">07</button>
+        <button class="page-button" data-page="8">08</button>
+        <button class="page-button" data-page="9">09</button>
+        <button class="page-button" data-page="10">10</button>
+        <button class="page-button" data-page="11">11</button>
+        <button class="page-button" data-page="12">12</button>
+      </nav>
+
+      <div class="side-actions">
+        <button id="exportNotes">Export annotations</button>
+        <a href="Alpha-Fe2O3-notebook-transcription.md">Open plain transcript</a>
+        <a href="#implementation">Structure &amp; exchange explorer</a>
+        <a href="#unit-cell">3D unit-cell schematic</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="masthead">
+        <div>
+          <p class="kicker">Annotated model atlas · historical notebook</p>
+          <h2>Color is part of the notation.</h2>
+        </div>
+        <div class="status">Transcription, not verified model evidence. Uncertain marks remain visible and unresolved.</div>
+      </header>
+
+      <section class="legend" aria-label="Atom color legend">
+        <span class="legend-title">Atom/site legend</span>
+        <span class="atom-key green"><span class="dot"></span>Layer 1 · green</span>
+        <span class="atom-key orange"><span class="dot"></span>Layer 1 · orange</span>
+        <span class="atom-key blue"><span class="dot"></span>Layer 2 · blue</span>
+        <span class="atom-key purple"><span class="dot"></span>Layer 2 · purple</span>
+        <span class="atom-key red"><span class="dot"></span>Layer 3 · red</span>
+        <span class="atom-key black"><span class="dot"></span>Layer 3 · black</span>
+      </section>
+
+      <div class="workspace">
+        <section class="source-panel">
+          <div class="panel-head">
+            <span id="sourceLabel">Original · page 1</span>
+            <a id="sourceLink" href="../Alpha-Fe2O3.pdf#page=1" target="_blank">open PDF</a>
+          </div>
+          <div class="page-image-frame" id="pageImageFrame">
+            <img id="sourcePage" class="source-page-image" src="Alpha-Fe2O3-pages/page-01.jpg" alt="Original Alpha-Fe2O3 notebook page 1">
+          </div>
+        </section>
+
+        <section class="transcript-panel" aria-live="polite">
+          <div class="panel-head"><span>Semantic transcription</span><span id="pageCounter">01 / 12</span></div>
+
+          <article class="page-article active" data-page="1">
+            <span class="section-id">P01 · crystal structure</span>
+            <h3>Three sequences, one repeating cell</h3>
+            <p>The source-[1] cell is divided into black, blue, and orange vertical sequences labeled <em>A</em><sub>1–3</sub> through <em>D</em><sub>1–3</sub>. Source [2] is annotated with the same three sequences.</p>
+            <div class="callout">Literal note: “Comparing ① ② ③, these two structures are identical.”</div>
+            <p>The lower sketch relabels a four-site sequence as A, B, C, D and notes that repeating one unit cell can produce the whole structure.</p>
+            <div class="mapping" data-map="P01">
+              <label><span class="label">Author-supplied meaning</span><textarea data-field="meaning" placeholder="Explain the three sequences and repeated cell…"></textarea></label>
+              <label><span class="label">Code correspondence</span><textarea data-field="code" placeholder="Files, masks, indices, or functions…"></textarea></label>
+              <p class="save-note">Saved automatically in this browser.</p>
+            </div>
+          </article>
+
+          <article class="page-article" data-page="2">
+            <span class="section-id">P02 · exchange sources</span>
+            <h3>Competing shell numberings</h3>
+            <p>The page connects the numbered crystal diagram to two published exchange tables. The handwritten question is retained:</p>
+            <div class="callout unresolved">Why <em>r</em><sub>2–1′</sub> ≠ <em>r</em><sub>2–4″</sub>? <span class="warning">UNRESOLVED</span></div>
+            <h4>Source [3], values in meV</h4>
+            <table><thead><tr><th>Interaction</th><th>Samuelsen</th><th>LSDA</th><th>LDA+U</th></tr></thead><tbody>
+              <tr><td>J<sup>(1)</sup></td><td>−3.076</td><td>9.905</td><td>8.576</td></tr>
+              <tr><td>J<sup>(3′)</sup></td><td>−0.528</td><td>−5.71</td><td>−7.3</td></tr>
+              <tr><td>J<sup>(1′)</sup></td><td>20.313</td><td>25.957</td><td>25.224</td></tr>
+              <tr><td>J<sup>(4′)</sup>, J<sup>(4″)</sup></td><td>12.554</td><td>13.488</td><td>17.502</td></tr>
+              <tr><td>J<sup>(3)</sup></td><td>1.056</td><td>−0.497</td><td>−0.073</td></tr>
+            </tbody></table>
+            <h4>Source [2], “this paper” column</h4>
+            <table><thead><tr><th>Label</th><th>Pair</th><th>Handwritten numbering</th><th>meV</th></tr></thead><tbody>
+              <tr><td>J<sub>1</sub></td><td>A–B</td><td>2–1</td><td>−3.21</td></tr>
+              <tr><td>J<sub>2</sub></td><td>A–D</td><td>2–3</td><td>−3.84</td></tr>
+              <tr><td>J<sub>3</sub></td><td>A–B</td><td>2–1</td><td>−26.10</td></tr>
+              <tr><td>J<sub>4</sub></td><td>A–C</td><td>2–4</td><td>−15.71</td></tr>
+              <tr><td>J<sub>5</sub></td><td>A–D</td><td>2–3</td><td>−0.17</td></tr>
+            </tbody></table>
+            <div class="mapping" data-map="P02"><label><span class="label">Author-supplied meaning</span><textarea data-field="meaning"></textarea></label><label><span class="label">Code correspondence</span><textarea data-field="code"></textarea></label><p class="save-note">Saved automatically in this browser.</p></div>
+          </article>
+
+          <article class="page-article" data-page="3">
+            <span class="section-id">P03 · exchange mapping</span>
+            <h3>Four arrow families</h3>
+            <div class="legend">
+              <span class="atom-key green"><span class="dot"></span>J1</span>
+              <span class="atom-key black"><span class="dot"></span>J2</span>
+              <span class="atom-key orange"><span class="dot"></span>J3</span>
+              <span class="atom-key blue"><span class="dot"></span>J4</span>
+            </div>
+            <p>Two central-atom positions are shown with color-coded exchange arrows. Literal note: “同理，可得 atom 3, 4 的 exchange interaction” — similarly obtain the exchange interactions for atoms 3 and 4.</p>
+            <div class="equation">J1 = J^(1)
+J2 = J^(3′)
+J3 = J^(1′)
+J4 = J^(4′) and J^(4″)</div>
+            <div class="callout unresolved">The note “J3, J4 最大” says J3 and J4 are largest. This source-to-model assignment remains unverified.</div>
+            <div class="mapping" data-map="P03"><label><span class="label">Author-supplied meaning</span><textarea data-field="meaning"></textarea></label><label><span class="label">Code correspondence</span><textarea data-field="code"></textarea></label><p class="save-note">Saved automatically in this browser.</p></div>
+          </article>
+
+          <article class="page-article" data-page="4">
+            <span class="section-id">P04 · DMI sources</span>
+            <h3>Third and fourth shells</h3>
+            <p>The DMI source diagram groups bonds as A–B, A–C, and A–D. Handwriting associates the third shell with pair 2–1′ and three sites, and the fourth shell with 2–4′/2–4″ and six sites.</p>
+            <div class="callout">Clipped source text: “The dominant contributions come from the third and fourth shells surrounding the central atom, with three and six sites on the shells, respectively.”</div>
+            <div class="mapping" data-map="P04"><label><span class="label">Author-supplied meaning</span><textarea data-field="meaning"></textarea></label><label><span class="label">Code correspondence</span><textarea data-field="code"></textarea></label><p class="save-note">Saved automatically in this browser.</p></div>
+          </article>
+
+          <article class="page-article" data-page="5">
+            <span class="section-id">P05 · DMI construction</span>
+            <h3>Directed vectors and sign questions</h3>
+            <p>Orange D<sub>1</sub> and blue D<sub>2</sub> arrows are drawn from two representative central sites. Red notes ask whether DMI points down or should point up.</p>
+            <div class="callout unresolved">Vector direction, “up/down,” and directed-bond convention remain <span class="warning">UNRESOLVED</span>.</div>
+            <div class="equation">E_DMI = D_ij · (S_i × S_j)
+
+Literal note: C3 symmetry → D has only a z component;
+D_z has opposite signs for upward and downward directions.
+
+D_1,z &lt; 0
+D_2,z: upper three &gt; 0; lower three &lt; 0</div>
+            <h4>Transcribed field line</h4>
+            <div class="equation">H_DMI = −(1/μ) ∂E_DMI/∂S_i
+      = −(D/μ) [−S_(i−1),y + S_(i+1),y,
+                 S_(i−1),x − S_(i+1),x,
+                 0]</div>
+            <div class="mapping" data-map="P05"><label><span class="label">Author-supplied meaning</span><textarea data-field="meaning"></textarea></label><label><span class="label">Code correspondence</span><textarea data-field="code"></textarea></label><p class="save-note">Saved automatically in this browser.</p></div>
+          </article>
+
+          <article class="page-article" data-page="6">
+            <span class="section-id">P06 · dipole</span>
+            <h3>Pair energy and three in-plane vectors</h3>
+            <div class="equation">E_dipole = −(μ_s² μ_0 / 8π) Σ_(i≠j)
+  [ 3(S_i·r_ij)(r_ij·S_j)/|r_ij|⁵ − (S_i·S_j)/|r_ij|³ ]
+
+H_dipole = −(1/μ_s) ∂E/∂S_i</div>
+            <p>The page then rewrites the same construction in magnetic-moment notation with a μ<sub>0</sub>/4π prefactor.</p>
+            <h4>Layer-1 green atom displacements</h4>
+            <div class="neighbor-list">
+              <div class="neighbor-row green"><span class="atom-label"><span class="dot"></span>green</span><code>r1 = [dist, 0, 0]</code></div>
+              <div class="neighbor-row green"><span class="atom-label"><span class="dot"></span>green</span><code>r2 = dist[−sin(π/6),  cos(π/6), 0]</code></div>
+              <div class="neighbor-row green"><span class="atom-label"><span class="dot"></span>green</span><code>r3 = dist[−sin(π/6), −cos(π/6), 0]</code></div>
+            </div>
+            <div class="mapping" data-map="P06"><label><span class="label">Author-supplied meaning</span><textarea data-field="meaning"></textarea></label><label><span class="label">Code correspondence</span><textarea data-field="code"></textarea></label><p class="save-note">Saved automatically in this browser.</p></div>
+          </article>
+
+          <article class="page-article" data-page="7">
+            <span class="section-id">P07 · atomistic model / Zhifeng</span>
+            <h3>Layers 1–3: lattice to array</h3>
+            <p>The top repeats J<sub>1</sub>–J<sub>4</sub> arrow groups for representative sites. Below, the honeycomb sites are encoded into rectangular array cells.</p>
+            <ul>
+              <li><span class="green">Green</span> and <span class="orange">orange</span> distinguish the two Layer-1 atom/site classes.</li>
+              <li><span class="blue">Blue</span> perimeter and <span class="purple">purple</span> interior markers distinguish the two Layer-2 classes.</li>
+              <li><span class="red">Red</span> perimeter and <span class="black">black</span> interior markers distinguish the two Layer-3 classes.</li>
+            </ul>
+            <div class="mapping" data-map="P07"><label><span class="label">Author-supplied meaning</span><textarea data-field="meaning"></textarea></label><label><span class="label">Code correspondence</span><textarea data-field="code"></textarea></label><p class="save-note">Saved automatically in this browser.</p></div>
+          </article>
+
+          <article class="page-article" data-page="8">
+            <span class="section-id">P08 · atomistic model / Zhifeng</span>
+            <h3>Layers 4–6 and interaction note</h3>
+            <p>The page continues the hollow-site layer sketches for Layers 4, 5, and 6. Exact marker semantics remain to be supplied.</p>
+            <div class="callout">Literal note: “exchange interaction: See two pages later.”</div>
+            <div class="callout unresolved">Literal note: “the DMI of each atom is identical to the corresponding J3, J4.” “Identical” may refer to neighbor indices, shell membership, or another mapping; it remains unresolved.</div>
+            <div class="mapping" data-map="P08"><label><span class="label">Author-supplied meaning</span><textarea data-field="meaning"></textarea></label><label><span class="label">Code correspondence</span><textarea data-field="code"></textarea></label><p class="save-note">Saved automatically in this browser.</p></div>
+          </article>
+
+          <article class="page-article" data-page="9">
+            <span class="section-id">P09 · atomistic model / Zhang Xue</span>
+            <h3>Implementation history and DW metric</h3>
+            <div class="callout">“The exchange number is 1 3 3 6 for each exchange interaction. Since the boundary for every layer and atom is different, I try to add a shell in the code to simplify the calculation.”</div>
+            <p>The remaining note discusses field rotation, type-x SOT switching, and a curved domain wall. It records the forward domain-wall metric:</p>
+            <div class="equation">v_DW,fwd = d / (2 t_c,fwd),  with P_sw = 50%</div>
+            <p>A square sketch proposes measuring motion along the lower-left to upper-right diagonal.</p>
+            <div class="mapping" data-map="P09"><label><span class="label">Author-supplied meaning</span><textarea data-field="meaning"></textarea></label><label><span class="label">Code correspondence</span><textarea data-field="code"></textarea></label><p class="save-note">Saved automatically in this browser.</p></div>
+          </article>
+
+          <article class="page-article" data-page="10">
+            <span class="section-id">P10 · color-preserving neighbor map</span>
+            <h3>Six atom/site classes in the coordinate rules</h3>
+            <p>The colored text is part of the data and distinguishes atom/site classes. The updated Layer-2 grid marks the middle-row column 12 as “empty” and states “the code correctly implement this.” A direct MATLAB check with a 3×13×3 unpadded core confirms that the corrected page-10 site distribution and <code>distrib.m</code> are identical at the array-mask level: column 12 is empty, column 13 is blue, and the next purple site lies outside the grid. This is notebook-to-code consistency, not independent crystallographic validation.</p>
+
+            <h4>Layer 1 rules</h4>
+            <div class="neighbor-list">
+              <div class="neighbor-row orange"><span class="atom-label"><span class="dot"></span>orange</span><code>J1 · (A,i,2)</code></div>
+              <div class="neighbor-row green"><span class="atom-label"><span class="dot"></span>green</span><code>J1 · (A,i,3)</code></div>
+              <div class="neighbor-row blue"><span class="atom-label"><span class="dot"></span>blue ink</span><code>J2 · (A,i+2) (A−1,i) (A+1,i)</code></div>
+              <div class="neighbor-row blue"><span class="atom-label"><span class="dot"></span>blue ink</span><code>J2 · (A,i−2) (A−1,i) (A+1,i)</code></div>
+              <div class="neighbor-row green"><span class="atom-label"><span class="dot"></span>green</span><code>J3 · 0 (A,i−1,2) (A+1,i+1,2) (A−1,i+1,2) 2p</code></div>
+              <div class="neighbor-row orange"><span class="atom-label"><span class="dot"></span>orange</span><code>J3 · 0 (A,i+1,3) (A+1,i−1,3) (A−1,i−1,3) 2p</code></div>
+              <div class="neighbor-row green"><span class="atom-label"><span class="dot"></span>green</span><code>J4 · 0 (A,i+2,2) (A+1,i,2) (A−1,i,2) or</code></div>
+              <div class="neighbor-row green"><span class="atom-label"><span class="dot"></span>green</span><code>J4 · 0 (A,i−1,3) (A+1,i+1,3) (A−1,i+1,3) 2p</code></div>
+              <div class="neighbor-row orange"><span class="atom-label"><span class="dot"></span>orange</span><code>J4 · 0 (A,i+1,2) (A−1,i−1,2) (A+1,i−1,2) 2p</code></div>
+              <div class="neighbor-row orange"><span class="atom-label"><span class="dot"></span>orange</span><code>J4 · 0 (A,i−2,3) (A−1,i,3) (A+1,i,3) gr</code></div>
+            </div>
+
+            <h4>Layer 2 rules</h4>
+            <div class="neighbor-list">
+              <div class="neighbor-row purple"><span class="atom-label"><span class="dot"></span>purple</span><code>J1 · (A,i,3)</code></div>
+              <div class="neighbor-row blue"><span class="atom-label"><span class="dot"></span>blue</span><code>J1 · (A,i,1)</code></div>
+              <div class="neighbor-row blue"><span class="atom-label"><span class="dot"></span>blue</span><code>J2 · 1 (A,i+1) (A−1,i−1) (A+1,i−1)</code></div>
+              <div class="neighbor-row purple"><span class="atom-label"><span class="dot"></span>purple</span><code>J2 · 1 (A,i−1) (A−1,i+1) (A+1,i+1)</code></div>
+              <div class="neighbor-row purple"><span class="atom-label"><span class="dot"></span>purple</span><code>J3 · 0 (A,i+1,1) (A+1,i−1,1) (A−1,i−1,1) gr</code></div>
+              <div class="neighbor-row blue"><span class="atom-label"><span class="dot"></span>blue</span><code>J3 · 0 (A,i−2,3) (A+1,i,3) (A−1,i,3) gr</code></div>
+              <div class="neighbor-row blue"><span class="atom-label"><span class="dot"></span>blue</span><code>J4 · 0 (A,i+1,3) (A+1,i−1,3) (A−1,i−1,3) 2p</code></div>
+              <div class="neighbor-row blue"><span class="atom-label"><span class="dot"></span>blue</span><code>J4 · 0 (A,i−2,1) (A+1,i,1) (A−1,i,1) gr</code></div>
+              <div class="neighbor-row purple"><span class="atom-label"><span class="dot"></span>purple</span><code>J4 · 0 (A,i+1,3) (A+1,i−1,3) (A−1,i−1,3) gr</code></div>
+              <div class="neighbor-row purple"><span class="atom-label"><span class="dot"></span>purple</span><code>J4 · 0 (A,i−1,1) (A+1,i+1,1) (A−1,i+1,1) or</code></div>
+            </div>
+            <div class="callout">Updated mask annotation verified against <code>distrib.m</code>: all displayed green, orange, blue, purple, red, black, and empty positions agree.</div>
+            <div class="callout unresolved">The apparently repeated J4 triplet remains preserved and unresolved.</div>
+            <div class="mapping" data-map="P10"><label><span class="label">Author-supplied meaning</span><textarea data-field="meaning" placeholder="Define green/orange/blue/purple and 0/1/2p/gr/or…"></textarea></label><label><span class="label">Code correspondence</span><textarea data-field="code" placeholder="Map each colored rule to MATLAB masks and shifts…"></textarea></label><p class="save-note">Saved automatically in this browser.</p></div>
+          </article>
+
+          <article class="page-article" data-page="11">
+            <span class="section-id">P11 · color-preserving neighbor map</span>
+            <h3>Black/red coordinate rules across Layers 1–2</h3>
+            <p>Black and red denote distinct Layer-3 atom/site classes. Handwritten annotations also name Layer-1 green/orange and Layer-2 blue/purple; their exact source/target roles remain to be supplied.</p>
+            <div class="neighbor-list">
+              <div class="neighbor-row black"><span class="atom-label"><span class="dot"></span>black</span><code>J1 · (A,i,2)</code></div>
+              <div class="neighbor-row red"><span class="atom-label"><span class="dot"></span>red</span><code>J1 · (A,i,1)</code></div>
+              <div class="neighbor-row black"><span class="atom-label"><span class="dot"></span>black</span><code>J2 · 1 (A,i+1) (A−1,i−1) (A+1,i−1)</code></div>
+              <div class="neighbor-row red"><span class="atom-label"><span class="dot"></span>red</span><code>J2 · 1 (A,i−1) (A−1,i+1) (A+1,i+1)</code></div>
+              <div class="neighbor-row black"><span class="atom-label"><span class="dot"></span>black</span><code>J3 · 1 (A,i−1,1) (A+1,i+1,1) (A−1,i+1,1) or</code></div>
+              <div class="neighbor-row red"><span class="atom-label"><span class="dot"></span>red</span><code>J3 · 1 (A,i+2,2) (A+1,i,2) (A−1,i,2) or</code></div>
+              <div class="neighbor-row black"><span class="atom-label"><span class="dot"></span>black</span><code>J4 · 1 (A,i−1,2) (A+1,i+1,2) (A−1,i+1,2) or</code></div>
+              <div class="neighbor-row black"><span class="atom-label"><span class="dot"></span>black</span><code>J4 · 1 (A,i+1,1) (A+1,i−1,1) (A−1,i−1,1) gr</code></div>
+              <div class="neighbor-row red"><span class="atom-label"><span class="dot"></span>red</span><code>J4 · 1 (A,i−1,2) (A+1,i+1,2) (A−1,i+1,2) 2p</code></div>
+              <div class="neighbor-row red"><span class="atom-label"><span class="dot"></span>red</span><code>J4 · 1 (A−1,i,1) (A+1,i,1) (A,i+2,1) or</code></div>
+            </div>
+            <div class="callout unresolved">Two J4 rows share the same visible coordinates but have different center colors and trailing keys. Both are intentionally retained.</div>
+            <div class="mapping" data-map="P11"><label><span class="label">Author-supplied meaning</span><textarea data-field="meaning" placeholder="Define black/red rules and target-color suffixes…"></textarea></label><label><span class="label">Code correspondence</span><textarea data-field="code" placeholder="Map rules to MATLAB masks and shifts…"></textarea></label><p class="save-note">Saved automatically in this browser.</p></div>
+          </article>
+
+          <article class="page-article" data-page="12">
+            <span class="section-id">P12 · references</span>
+            <h3>Abbreviated source list</h3>
+            <ol>
+              <li>[1] 2020, PRL, Yang Cheng</li>
+              <li>[2] 2023, PRB, Tobias Dannegger</li>
+              <li>[3] 2005, PRB, V. V. Mazurenko</li>
+            </ol>
+            <div class="callout unresolved">Titles, complete authors, DOI/article numbers, and exact locators are <span class="warning">REFERENCE MISSING</span>.</div>
+            <div class="mapping" data-map="P12"><label><span class="label">Author-supplied meaning</span><textarea data-field="meaning"></textarea></label><label><span class="label">Code correspondence</span><textarea data-field="code"></textarea></label><p class="save-note">Saved automatically in this browser.</p></div>
+          </article>
+        </section>
+      </div>
+      <section class="implementation-guide" id="unit-cell" aria-labelledby="unit-cell-title">
+        <p class="kicker">Notebook page 1 · schematic reconstruction</p>
+        <h2 id="unit-cell-title">Rotate one prism. Repeat it into a larger drawing.</h2>
+        <p>Notebook-inspired Fe columns with illustrative spacing, spin arrows, and three repetition controls. <a href="unit-cell.html" target="_blank" rel="noopener">Open full-width 3D view</a>. Its labels are not a verified mapping to MATLAB array sites.</p>
+        <iframe src="unit-cell.html" title="Rotatable and repeatable notebook unit-cell schematic" loading="lazy"></iframe>
+      </section>
+      <section class="implementation-guide" id="implementation" aria-labelledby="implementation-title">
+        <p class="kicker">Code companion · distrib.m / exchangej_.m</p>
+        <h2 id="implementation-title">Trace one atom from a mask to its neighbors.</h2>
+        <p>The linked views explain the existing array mapping and notebook neighbor lists. <a href="structure-exchange.html" target="_blank" rel="noopener">Open full-width explorer</a> · <a href="structure-exchange-guide.md">Read the illustrated guide and complete neighbor table</a>.</p>
+        <iframe src="structure-exchange.html" title="Interactive structure and exchange implementation explorer" loading="lazy"></iframe>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const pageButtons = [...document.querySelectorAll('.page-button')];
+    const pageArticles = [...document.querySelectorAll('.page-article')];
+    const sourcePage = document.getElementById('sourcePage');
+    const pageImageFrame = document.getElementById('pageImageFrame');
+    const sourceLabel = document.getElementById('sourceLabel');
+    const sourceLink = document.getElementById('sourceLink');
+    const pageCounter = document.getElementById('pageCounter');
+    const storagePrefix = 'alpha-fe2o3-atlas:';
+
+    function readStoredNote(key) {
+      try { return localStorage.getItem(key) || ''; }
+      catch { return ''; }
+    }
+
+    function writeStoredNote(key, value) {
+      try { localStorage.setItem(key, value); }
+      catch { /* Annotation editing still works when file-storage is blocked. */ }
+    }
+
+    function showPage(page) {
+      pageButtons.forEach(button => button.classList.toggle('active', button.dataset.page === String(page)));
+      pageArticles.forEach(article => article.classList.toggle('active', article.dataset.page === String(page)));
+      const pageNumber = String(page).padStart(2, '0');
+      sourcePage.src = `Alpha-Fe2O3-pages/page-${pageNumber}.jpg`;
+      sourcePage.alt = `Original Alpha-Fe2O3 notebook page ${page}`;
+      pageImageFrame.scrollTop = 0;
+      sourceLink.href = `../Alpha-Fe2O3.pdf#page=${page}`;
+      sourceLabel.textContent = `Original · page ${page}`;
+      pageCounter.textContent = `${String(page).padStart(2, '0')} / 12`;
+      try { history.replaceState(null, '', `#page-${page}`); }
+      catch { /* Some browsers restrict history changes for local files. */ }
+
+      [page - 1, page + 1].filter(candidate => candidate >= 1 && candidate <= 12).forEach(candidate => {
+        const preload = new Image();
+        preload.src = `Alpha-Fe2O3-pages/page-${String(candidate).padStart(2, '0')}.jpg`;
+      });
+    }
+
+    pageButtons.forEach(button => button.addEventListener('click', () => showPage(Number(button.dataset.page))));
+
+    document.querySelectorAll('.mapping').forEach(mapping => {
+      const mapId = mapping.dataset.map;
+      mapping.querySelectorAll('textarea').forEach(field => {
+        const key = `${storagePrefix}${mapId}:${field.dataset.field}`;
+        field.value = readStoredNote(key);
+        field.addEventListener('input', () => writeStoredNote(key, field.value));
+      });
+    });
+
+    document.getElementById('exportNotes').addEventListener('click', () => {
+      const notes = {};
+      document.querySelectorAll('.mapping').forEach(mapping => {
+        notes[mapping.dataset.map] = {};
+        mapping.querySelectorAll('textarea').forEach(field => {
+          notes[mapping.dataset.map][field.dataset.field] = field.value;
+        });
+      });
+      const blob = new Blob([JSON.stringify(notes, null, 2)], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'Alpha-Fe2O3-notebook-annotations.json';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    });
+
+    const initialPage = Number((location.hash.match(/page-(\d+)/) || [])[1]) || 1;
+    showPage(Math.min(12, Math.max(1, initialPage)));
+  </script>
+</body>
+</html>
