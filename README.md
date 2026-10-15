@@ -114,8 +114,8 @@ See [the issue record](diff.md) before interpreting these outputs.
 | `docs/Alpha-Fe2O3-notebook-transcription.md` | Page-addressable digital transcription of the notebook |
 | `docs/Alpha-Fe2O3-notebook.html` | Interactive color-preserving notebook atlas with annotation fields |
 | `docs/Alpha-Fe2O3-pages/` | Rendered notebook pages used by the interactive atlas |
-| `docs/structure-exchange-guide.md` | Historical illustrated mask-to-array explanation and all 24 color/exchange mappings |
-| `docs/structure-exchange.html`, `docs/structure-exchange.js` | Historical offline explorer with pre-import source excerpts and DMI signs |
+| `docs/structure-exchange-guide.md` | Current illustrated mask-to-array explanation and all 24 color/exchange mappings |
+| `docs/structure-exchange.html`, `docs/structure-exchange.js` | Offline explorer with current source excerpts and signed DMI operator |
 | `docs/unit-cell.html`, `docs/unit-cell.js` | Rotatable notebook-based 3D schematic with cell repetition; illustrative coordinates, not simulation geometry |
 | `docs/model-methodology.md` | Maintained description of implemented behavior and evidence gaps |
 | `AGENTS.md` | Project-specific instructions for coding agents |
@@ -125,16 +125,16 @@ See [the issue record](diff.md) before interpreting these outputs.
 For an introduction to `distrib.m` and `exchangej_.m`, start with the
 [illustrated implementation guide](docs/structure-exchange-guide.md) or open
 [the interactive explorer](docs/structure-exchange.html) in a browser. It also
-appears in the notebook atlas. These are historical snapshots of the code
-before the `code_20261013` import. The atom layout and exchange topology still
-match, but shift-variable names and source links/line numbers refer to that
-older snapshot. Its DMI view, signs, coefficient, and J3/J4-only neighbor set
-do not describe the imported DMI. Use `dmi.m` and the maintained methodology
-for the current implementation.
+appears in the notebook atlas. The explorer and guide follow the current
+MATLAB masks, exchange topology,
+shift-variable names, source excerpts, and signed DMI operator, including
+unshifted adjacent-layer reads and the unresolved DMI-02 antisymmetry issue.
+DMI labels show operator coefficients rather than physical bond-vector arrows.
+Notebook images and transcription remain historical records.
 No server, build step, or external dependencies are needed; keep the companion
 JavaScript file and notebook page images beside the HTML when sharing it.
-The explorer illustrates historical code and notebook agreement, not an
-independently verified crystal geometry.
+The explorer illustrates current implementation indexing and historical
+exchange/notebook agreement; physical crystal geometry remains unverified.
 
 The [3D unit-cell schematic](docs/unit-cell.html) redraws the Fe-column figure
 on notebook page 1. Drag to rotate, use the camera controls to zoom or change

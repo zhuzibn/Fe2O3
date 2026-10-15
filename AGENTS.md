@@ -145,6 +145,20 @@ Before finalizing a file-changing task, run `git diff --stat` and
 `git diff --check` when practical, inspect unexpected large diffs, and perform
 the documentation-impact check required by the global instructions.
 
+## Visualization consistency
+
+- Keep implementation visualizations synchronized with the current MATLAB code.
+  When code changes affect a displayed result, update the affected diagrams,
+  neighbor tables, masks, shift names, signs, units, parameters, boundary rules,
+  embedded source excerpts, line references, and explanatory text in the same task.
+- Check all six site masks and applicable interaction and boundary selections;
+  confirm that embedded source snapshots match the checked-in files.
+- Treat MATLAB code as the source of truth for implemented behavior. Preserve
+  visible unresolved issues rather than correcting the model in a visualization.
+- Keep historical notebook images/transcriptions and illustrative 3D geometry
+  explicitly labeled. Do not imply a verified mapping from schematic markers
+  to MATLAB sites or physical DMI vectors without qualifying evidence.
+
 ## Documentation maintenance
 
 - Update `README.md` when requirements, entry points, configuration, outputs,

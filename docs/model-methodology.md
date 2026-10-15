@@ -177,12 +177,13 @@ The detailed offset selection differs among green, orange, blue, purple, red,
 and black sites. `exchangej_.m` is currently the executable source of truth for
 those selections; notebook pages 10--11 are the visual design record.
 
-The historical [implementation guide](structure-exchange-guide.md) supplies the complete
+The maintained [implementation guide](structure-exchange-guide.md) supplies the complete
 24-entry color/interaction mapping and a worked explanation of the reversed
 `circshift` signs. The [interactive explorer](structure-exchange.html) connects
 the notebook, array masks, neighbor positions, boundary omissions, and exact
-pre-import source excerpts. Exchange topology remains equivalent after
-shift-variable renaming; its DMI view describes the older implementation.
+current source excerpts. Its DMI view shows the signed adjacent-layer operator,
+including unshifted reads and the unresolved DMI-02 issue; labels show operator
+coefficients rather than physical DMI vectors.
 Its coordinates are array indices, not reconstructed
 crystallographic positions. The author's confirmed notebook `0`/`1` box labels
 are distinct from the code's occupied/empty mask values.
@@ -277,7 +278,7 @@ derivation, and the physical axis mapping remain `UNRESOLVED`.
 
 `dmi.m` constructs signed interlayer sums `nex` and `pre`. Its comments
 associate `nex` with `i-1` and physical positive z, and `pre` with `i+1` and
-physical negative z. Unlike the historical explorer, the source sums contain
+physical negative z. The source sums and current explorer include
 mixed signs and additional unshifted adjacent-layer terms.
 
 Writing the signed source sums as $\mathbf S_{\mathrm{nex}}$ and
