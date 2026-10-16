@@ -227,9 +227,9 @@ while ~(ct3>ct3run)
         end
 
         mmx(:,:,:,ct1+1)=gather(sxx); mmy(:,:,:,ct1+1)=gather(syy); mmz(:,:,:,ct1+1)=gather(szz);
-        hdmi_tmpx(:,:,:,ct1+1)=hdmi_x;
-        hdmi_tmpy(:,:,:,ct1+1)=hdmi_y;
-        hdmi_tmpz(:,:,:,ct1+1)=hdmi_z;
+        hdmi_tmpx(:,:,:,ct1)=hdmi_x;
+        hdmi_tmpy(:,:,:,ct1)=hdmi_y;
+        hdmi_tmpz(:,:,:,ct1)=hdmi_z;
         ct1=ct1+1;
         if ~(ct3==1 && ~(ct1>3)) && ct1>3
             tmpxn0=mmx(:,:,:,ct1);tmpyn0=mmy(:,:,:,ct1);tmpzn0=mmz(:,:,:,ct1);
