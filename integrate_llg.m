@@ -159,9 +159,9 @@ while ~(ct3>ct3run)
         %% calcuation for anisotropy field
 
       
-        cosphi=mmxtmp./sin(acos(mmztmp));
-        sinphi=mmytmp./sin(acos(mmztmp));
         sintheta=sin(acos(mmztmp));
+        cosphi=mmxtmp./(sintheta+(sintheta==0));%ANI-01: avoid 0/0 at the +-z poles
+        sinphi=mmytmp./(sintheta+(sintheta==0));
         costheta=mmztmp;
 
         hk_x=hk6.*(6.*sintheta.^5.*2.*cosphi.*sinphi.*(2.*sinphi+1).*(2.*sinphi-1).*(-3+4.*sinphi.^2).*sinphi);
