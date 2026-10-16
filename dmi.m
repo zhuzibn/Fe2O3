@@ -3,7 +3,7 @@
 %% pre means the layer in negative z direction(i+1 in the code)
 for i=1:natomH
     switch mod(i-1,3)
-        case 0 %%tpye layer 1
+        case 0 %%type layer 1
             % pre means i+1 layer
             % nex means i-1 layer
             if i==1%layer 1 do not have the i-1 layer interaction
@@ -127,5 +127,32 @@ for i=1:natomH
         otherwise
             error('unexpected index');
     end
-end
 
+% In the code above, Fe atoms are classified by layer and color. However,
+% Fe atoms with the same layer and color may have different local
+% environments. Moreover, even if their neighboring Fe atoms are the same,
+% the O atoms may be different, leading to a different sign for the DMI
+% interaction. The following part adjusts the DMI sign based on differences
+% in the O environment. Specifically, the sign is reversed for
+% layer1_orange, layer3_red, layer5_purple, layer2_blue, layer4_green,
+% and layer6_black.
+
+    switch mod(i-1,3)
+        case 0
+            dmi_gather_orientation = atomtype_layer1or - atomtype_layer1gr;
+        case 1
+            dmi_gather_orientation = atomtype_layer2p - atomtype_layer2blue;
+        case 2
+            dmi_gather_orientation = atomtype_layer3red - atomtype_layer3black;
+        otherwise
+            error('unexpected index');
+    end
+    dmi_target_sign = (1-2*mod(i,2)) .* dmi_gather_orientation;
+    mmxtmpd_nex(:,:,i) = dmi_target_sign .* mmxtmpd_nex(:,:,i);
+    mmytmpd_nex(:,:,i) = dmi_target_sign .* mmytmpd_nex(:,:,i);
+    mmztmpd_nex(:,:,i) = dmi_target_sign .* mmztmpd_nex(:,:,i);
+    mmxtmpd_pre(:,:,i) = dmi_target_sign .* mmxtmpd_pre(:,:,i);
+    mmytmpd_pre(:,:,i) = dmi_target_sign .* mmytmpd_pre(:,:,i);
+    mmztmpd_pre(:,:,i) = dmi_target_sign .* mmztmpd_pre(:,:,i);
+end
+clear dmi_gather_orientation dmi_target_sign
