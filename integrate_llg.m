@@ -85,7 +85,7 @@ while ~(ct3>ct3run)
     end
     clear tmpx tmpy tmpz
     ct1=1; %count 1
-    while ct1<gpusteps
+    while ct1<gpusteps+1
         mmxtmp=mmx(:,:,:,ct1);
         mmytmp=mmy(:,:,:,ct1);
         mmztmp=mmz(:,:,:,ct1);
@@ -251,12 +251,12 @@ while ~(ct3>ct3run)
     tmp2xn0=mmx(:,:,:,end);tmp2yn0=mmy(:,:,:,end);tmp2zn0=mmz(:,:,:,end);
     tmp2xn1=mmx(:,:,:,end-1);tmp2yn1=mmy(:,:,:,end-1);tmp2zn1=mmz(:,:,:,end-1);
     tmp2xn2=mmx(:,:,:,end-2);tmp2yn2=mmy(:,:,:,end-2);tmp2zn2=mmz(:,:,:,end-2);
-    mmx_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmx(:,:,:,1:savetstep:end));
-    mmy_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmy(:,:,:,1:savetstep:end));
-    mmz_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmz(:,:,:,1:savetstep:end));
-    hdmi_allx(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=hdmi_tmpx(:,:,:,1:savetstep:end);
-    hdmi_ally(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=hdmi_tmpy(:,:,:,1:savetstep:end);
-    hdmi_allz(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=hdmi_tmpz(:,:,:,1:savetstep:end);
+    mmx_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmx(:,:,:,1:savetstep:gpusteps));
+    mmy_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmy(:,:,:,1:savetstep:gpusteps));
+    mmz_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmz(:,:,:,1:savetstep:gpusteps));
+    hdmi_allx(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=hdmi_tmpx(:,:,:,1:savetstep:gpusteps);
+    hdmi_ally(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=hdmi_tmpy(:,:,:,1:savetstep:gpusteps);
+    hdmi_allz(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=hdmi_tmpz(:,:,:,1:savetstep:gpusteps);
     ct3=ct3+1;
 end
 
@@ -279,4 +279,3 @@ hdmi_allx=hdmi_allx.*atomtype_;
 hdmi_ally=hdmi_ally.*atomtype_;
 hdmi_allz=hdmi_allz.*atomtype_;
 clear mmx_ mmy_ mmz_
-t=t(1:savetstep:end);

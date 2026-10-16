@@ -90,9 +90,6 @@ tstep=1e-16;%one step is 0.1fs
 savetstep=5000;%save data every ~ loops
 gpusteps=round(gpusave/tstep);
 runtime=gpurun_number*gpusave;
-totstep=round(runtime/tstep);
-t=linspace(tstep,runtime,totstep);
-
 if ~mod(gpusteps,savetstep)==0
     error('gpusteps should be multiple integer times of savetstep, otherwise there might be errors')
 end
@@ -100,6 +97,7 @@ tmp1=ones(1,gpusteps);
 tmp2=tmp1(1:savetstep:end);
 final_m_savestep=size(tmp2,2);
 clear tmp1 tmp1
+t=(0:gpurun_number*final_m_savestep-1)*savetstep*tstep;%TIME-01: elapsed time of each saved frame
 if (SOT_DLT || SOT_FLT) && ~(rk4==1)
     error('only rk4 is implemented for spin torque driven')
 end
