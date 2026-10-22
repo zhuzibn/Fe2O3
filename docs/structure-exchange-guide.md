@@ -321,7 +321,7 @@ orange and last-layer black retain three. Interior targets retain nine.
 The explorer uses a small `9 × 17 × 6` core for teaching the index rules;
 `main.m` defaults to `20 × 20 × 6`, padded to `24 × 24 × 6`.
 
-`dmi.m:9–14` constructs energy-weighted sums from the current-state exchange
+`dmi.m:16–21` constructs energy-weighted sums from the current-state exchange
 sums, without a uniform-sublattice approximation:
 
 $$

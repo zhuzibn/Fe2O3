@@ -286,7 +286,7 @@ derivation, and the physical axis mapping remain `UNRESOLVED`.
 ### Dzyaloshinskii--Moriya interaction
 
 **Implemented at merged PR #18.** `exchangej_.m` first computes the current
-J3/J4 spin-neighbor sums. `dmi.m:9–14` reuses them with weights in joules:
+J3/J4 spin-neighbor sums. `dmi.m:16–21` reuses them with weights in joules:
 
 $$
 q_k=1-2\operatorname{mod}(k,2)=(-1)^k,\qquad
@@ -548,7 +548,7 @@ $J_1$--$J_4$ must be resolved before the comment or values are changed.
 | Exchange shells | Site-dependent $J_1$--$J_4$ offset sums; intended bulk multiplicities $1,3,3,6$ | `exchangej_.m`; notebook pp. 2--4, 9--11 | Notebook/code agreement and reciprocity passed the finite-lattice audit above; `UNRESOLVED`: physical shell distances and source mapping |
 | Exchange values | Four values listed above | `main.m`; notebook pp. 2--3 | `UNRESOLVED`: code comment and copied table provenance conflict |
 | Anisotropy | Second-order axial term plus guarded sixth-order field | `integrate_llg.m:159–173` | ANI-01 arithmetic defect resolved; `UNRESOLVED`: sixth-order energy, axis and parameter provenance |
-| DMI | $q_k(D_3S_{J3}-D_4S_{J4})$ sums; code energy $-\mathbf x^T W\mathbf y$ | `dmi.m:1–15`; `main.m:43–51`; `integrate_llg.m:174–182` | DMI-02 antisymmetry defect resolved on tested lattices; `UNRESOLVED`: physical bonds, shell mapping, and parameter provenance |
+| DMI | $q_k(D_3S_{J3}-D_4S_{J4})$ sums; code energy $-\mathbf x^T W\mathbf y$ | `dmi.m:1–22`; `main.m:43–51`; `integrate_llg.m:174–182` | DMI-02 antisymmetry defect resolved on tested lattices; `UNRESOLVED`: physical bonds, shell mapping, and parameter provenance |
 | Dipole | Three same-layer neighbors at $0.5067\ \mathrm{nm}$, refreshed every 50 steps | `dipole_.m`; notebook p. 6 | `UNRESOLVED`: truncation justification and source locator missing |
 | LLG/LLGS | Fixed-length LL form in tesla convention | GPU kernels; local equation reference | Focused RK4 precession, damping, and torque checks passed; general convergence unresolved |
 | Boundary | Empty two-cell lateral padding; omitted out-of-range layer bonds | `distrib.m`, `exchangej_.m`, `dmi.m` | Finite-lattice notebook/code agreement audited above; broader coordination and finite-size tests missing |
