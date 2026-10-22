@@ -12,9 +12,12 @@ tests. See [docs/model-methodology.md](docs/model-methodology.md) for the
 implemented equations, assumptions, evidence status, and open issues.
 
 The implementation was imported from `code_20261013` after a ten-item review.
-The sole correction to that source is that added adjacent-layer DMI terms
+The sole correction during that initial import was that added adjacent-layer DMI terms
 read the current spin state rather than the first frame of each chunk.
-See [diff.md](diff.md) for the accepted decisions and deferred defects.
+Merged PR #18 (`864d6b0`) subsequently corrected the anisotropy pole division,
+DMI-history alignment, chunk update counts, and saved-time labels, and replaced
+DMI with separate J3/J4 weights and alternating layer signs. See
+[diff.md](diff.md) for current issue status and the historical import decisions.
 
 ## Requirements
 
@@ -79,18 +82,20 @@ polarization approximately `[-0.866,-0.5,0]`, and field-like/damping-like
 ratio 5. Their field-equivalent amplitudes are approximately 0.1865 T and
 0.9324 T. STT and dipole coupling are disabled. Occupied odd/even layers
 start along +x/-x. Anisotropy uses `Ksim1=-8e-22 J` and `hk6=1.76e-27 J`.
-The nominal runtime is 150 ps, with 300 saved spin frames.
+The default run performs 1,500,000 updates, evolving for 150 ps. Its 300 saved
+spin and DMI frames are aligned at `t = 0, 0.5, ..., 149.5 ps`; the 150 ps
+endpoint is computed but excluded from the saved trajectory.
 
 The lattice generator adds two empty array rows and columns on every lateral
 side. Thus the default arrays become $24\times24\times6$ after generation.
 Only entries selected by `atomtype_` represent magnetic sites.
 
-Three issues were explicitly retained during import: **ANI-01**, a spin
-exactly along +z produces a NaN anisotropy field; **OUT-01**, half the default
-saved DMI frames are unfilled zeros and the others lag the spin by one step;
-and **TIME-01**, each chunk performs 9,999 updates, so the actual evolution
-is 149.985 ps and saved time labels do not exactly match elapsed time.
-See [the issue record](diff.md) before interpreting these outputs.
+**ANI-01** and **OUT-01** are resolved in the merged code. **TIME-01** update
+counts and timestamps are corrected; saving the final-time state remains an
+open output decision. Restarting from the last saved default frame uses the
+state at 149.5 ps. The **DMI-02** antisymmetry defect is resolved for the tested
+finite lattices, while physical bond assignments and parameter provenance
+remain unresolved. See [the issue record](diff.md) for evidence and scope.
 
 ## Repository layout
 
@@ -102,14 +107,14 @@ See [the issue record](diff.md) before interpreting these outputs.
 | `distrib.m` | Occupancy and layer/site masks plus lateral padding |
 | `integrate_llg.m` | Neighbor shifts, effective fields, GPU loop, and sampling |
 | `exchangej_.m` | Site-dependent $J_1$--$J_4$ neighbor sums |
-| `dmi.m` | Site-dependent interlayer DMI neighbor sums |
+| `dmi.m` | J3/J4 DMI weights with alternating target-layer signs |
 | `dipole_.m` | Truncated nearest-neighbor in-plane dipole field |
 | `atomgpurk4.m` | Fixed-field RK4 update with SOT/STT-labeled torques |
 | `atomgpu.m` | Fixed-field Heun update without torque arguments |
 | `atomgpupc4.m` | Fixed-field fourth-order predictor-corrector update |
 | `One_data_curve.m` | Manual plots of selected spins and final layer maps |
 | `Readme.txt` | Original source-folder file descriptions |
-| `diff.md` | Accepted import decisions, deferred issues, and verification record |
+| `diff.md` | Current issue status, historical import decisions, and verification record |
 | `Alpha-Fe2O3.pdf` | Original annotated methodology notebook |
 | `docs/Alpha-Fe2O3-notebook-transcription.md` | Page-addressable digital transcription of the notebook |
 | `docs/Alpha-Fe2O3-notebook.html` | Interactive color-preserving notebook atlas with annotation fields |
@@ -127,9 +132,13 @@ For an introduction to `distrib.m` and `exchangej_.m`, start with the
 [the interactive explorer](docs/structure-exchange.html) in a browser. It also
 appears in the notebook atlas. The explorer and guide follow the current
 MATLAB masks, exchange topology,
-shift-variable names, source excerpts, and signed DMI operator, including
-unshifted adjacent-layer reads and the unresolved DMI-02 antisymmetry issue.
-DMI labels show operator coefficients rather than physical bond-vector arrows.
+shift-variable names, source excerpts, and the merged J3/J4 DMI operator.
+Select **DMI** and either actual layer index for each color to see the
+alternating signs, `Dsim3=1.6e-23 J` and `Dsim4=1.28e-23 J` weights, and
+surface/edge omissions. DMI on J1/J2 is absent. Selecting a neighbor traces
+its shift through `exchangej_.m` and its weight in `dmi.m`.
+DMI labels show algebraic weights rather than physical bond-vector arrows;
+physical shell assignments and parameter provenance remain unresolved.
 Notebook images and transcription remain historical records.
 No server, build step, or external dependencies are needed; keep the companion
 JavaScript file and notebook page images beside the HTML when sharing it.
@@ -165,6 +174,13 @@ paper. Report the conflict, define the intended convention, and validate the
 change first.
 
 ## Current validation status
+
+A separate [PR #18 / TIME-01 change report](docs/pr18-time-01-change-report.html)
+compares `4ba0e42` with `77dece1`, including checked timing behavior and the
+remaining final-state output question. That reviewed MATLAB source is now
+merged in this checkout. The report retains its original pre-merge context;
+[current verification status](docs/model-methodology.md#merged-pr-18-verification)
+summarizes which checks support the resolved issues.
 
 Focused import checks are recorded in the methodology; there is no accepted
 production benchmark or maintained automated test suite. Before using results

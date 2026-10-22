@@ -2,13 +2,14 @@
 
 This guide follows the current checked-in `distrib.m`, `exchangej_.m`, and
 `dmi.m`. Notebook pages 10–11 provide the historical exchange sketches;
-page 8's J3/J4-only DMI note does not describe the current signed operator.
+page 8 records the historical J3/J4 DMI idea. The merged PR #18 code now
+reuses those two neighbor sums with separate weights and alternating layer signs.
 This documentation does not change the Class 4, fixed-length LLG/LLGS model
 or establish its physical crystallography, shell assignments, or parameters.
 
 Open the [interactive implementation explorer](structure-exchange.html), also
 embedded in the [notebook atlas](Alpha-Fe2O3-notebook.html#implementation).
-Select a target color, interaction, and boundary position. Select a neighbor
+Select a target color, interaction, actual layer index, and lateral position. Select a neighbor
 to connect its array position, shift variable, and current source lines.
 
 ## 1. Read the structure before reading the shifts
@@ -114,7 +115,7 @@ shifted = circshift(spins,[dr,dc]);
 
 Thus `circshift(...,[0,+1])` gathers the column-`c-1` neighbor. The suffix
 encodes the **array shift**, not the neighbor displacement. Definitions live
-in `integrate_llg.m:98–136`.
+in `integrate_llg.m:95–133`.
 
 ## 4. Complete neighbor reference
 
@@ -210,7 +211,7 @@ The exchange Hamiltonian convention in the shared
 `presentations/equations/sections/hamiltonian.tex` informed the reciprocity
 check; it was not used as evidence for the material-specific offsets.
 
-### Current visualization synchronization check (2026-10-15)
+### Historical visualization synchronization check (2026-10-15)
 
 The updated explorer passed 100 browser combinations across site, interaction,
 surface, and lateral-edge controls, including every neighbor selection, exact
@@ -221,7 +222,8 @@ core, for J1–J4 and signed DMI in x/y/z, all six masks, both row parities,
 surfaces, and lateral edges. MATLAB was R2024b Update 1
 (`24.2.0.2740171`). No trajectories or MAT outputs were generated.
 This verifies visualization/code agreement, not the physical model or DMI
-antisymmetry. The existing DMI-02 finding remains unresolved.
+antisymmetry. DMI-02 remained unresolved for that pre-PR-18 operator; these
+results are historical, not a check of the current DMI implementation.
 
 Commands used (local disposable harnesses, not a maintained test suite):
 
@@ -286,52 +288,125 @@ unchanged. `unit-cell.js` is documentation graphics only.
 
 ## 8. DMI links in the explorer
 
-Select **DMI** to inspect the signed adjacent-layer reads for each site mask.
-The layer-group labels follow `dmi.m`: `nex` is `i−1` (physical positive $z$)
-and `pre` is `i+1` (physical negative $z$). Blue and brown lines distinguish
-those groups. The displayed coefficient $C=+1$ or $-1$ is the sign of a spin
-read within $S_{\mathrm{nex}}+S_{\mathrm{pre}}$, before field assembly.
-It is not a physical DMI-vector direction.
+Select **DMI** to inspect the J3/J4 neighbors reused by `dmi.m` at merged
+PR #18 (`864d6b0`). Blue links show J3; brown links show J4. Atom colors still
+identify the six site masks. Labels show the signed energy weight of each
+read, not a reconstructed physical DMI vector. The former `nex`/`pre` sums
+and unshifted J1 reads are absent from the current code.
 
-Using the offset symbols in section 4, the current sums are:
+Using the offset symbols in section 4, the reused sums are:
 
-| Target | `nex` at `k−1` | `pre` at `k+1` |
+| Target | J3 offsets, weight $q_kD_3$ | J4 offsets, weight $-q_kD_4$ |
 |---|---|---|
-| Green | +M − O | −M + P2 |
-| Orange | +P − M2 | −P + O |
-| Blue | +M2 − O | −M2 + P |
-| Purple | +P − M | −P + O |
-| Red | +P2 − M | −P2 + O |
-| Black | +M − O | +P − M |
+| Green | M @ +1 | P2 @ +1; M @ -1 |
+| Orange | P @ -1 | P @ +1; M2 @ -1 |
+| Blue | M2 @ +1 | P @ +1; M2 @ -1 |
+| Purple | P @ -1 | P @ +1; M @ -1 |
+| Red | P2 @ -1 | M @ -1; P2 @ +1 |
+| Black | M @ +1 | M @ -1; P @ +1 |
 
-Each interior target has ten reads: nine shifted reads and one unshifted
-adjacent-layer read O. O coincides with its J1 offset; some shifted reads are
-DMI-only offsets rather than that target's J3/J4 offsets. Thus the current
-operator must not be described as just the union of J3 and J4. Link labels
-in the explorer identify offset coincidences, not physical shell assignments.
-Surface guards remove the absent layer, while lateral padding supplies zeros.
+Here $q_k=1-2\operatorname{mod}(k,2)=(-1)^k$. An odd target layer uses
+$-D_3$ on J3 and $+D_4$ on J4; an even target layer uses $+D_3$ and $-D_4$.
+The sign is determined by the **actual target layer**, not its motif label:
+green/orange occupy layers 1 and 4, blue/purple 2 and 5, red/black 3 and 6.
+The explorer exposes both occurrences, including the two interior choices
+for blue/purple. Increasing array layer index still points opposite to
+physical $z$, as documented in `dmi.m`.
+
+An interior target has nine reads (three J3, six J4). DMI on J1/J2 is omitted;
+their exchange contributions remain unchanged. The same surface guards and
+lateral padding as exchange supply the omissions. Away from lateral edges,
+first-layer green and last-layer red retain six DMI neighbors; first-layer
+orange and last-layer black retain three. Interior targets retain nine.
 The explorer uses a small `9 × 17 × 6` core for teaching the index rules;
 `main.m` defaults to `20 × 20 × 6`, padded to `24 × 24 × 6`.
 
-The field assembled in `integrate_llg.m:186–188` is
+`dmi.m:9–14` constructs energy-weighted sums from the current-state exchange
+sums, without a uniform-sublattice approximation:
 
 $$
-\mathbf B_{\mathrm{DMI}}=\frac{D_{\mathrm{sim}}}{\mu_s}
-(S_{\mathrm{nex},y}+S_{\mathrm{pre},y},
--S_{\mathrm{nex},x}-S_{\mathrm{pre},x},0).
+\mathbf S_{D,i}=q_{k_i}(D_3\mathbf S_{J3,i}-D_4\mathbf S_{J4,i}).
 $$
 
-`main.m:44` sets `Dsim=5.6e-24 J` when enabled and zero otherwise.
-All reads use the current spin state, including the unshifted terms.
-Selecting a neighbor highlights its shift in the current `dmi.m` excerpt.
-The notebook comparison still opens page 8 as a historical comparison.
+`integrate_llg.m:174–182` masks these sums and assembles the flux density:
 
-**UNRESOLVED / DMI-02:** the imported signed operator fails the recorded
-finite-lattice pair antisymmetry check (544 mismatches on the 140-site audit).
-The old uniform nex/pre DMI-vector arrows have therefore been replaced with
-signed operator labels. Physical directed bonds and an energy-consistent
-mapping remain unresolved; see [model methodology](model-methodology.md#dzyaloshinskii--moriya-interaction).
-No new physical interpretation is selected here.
+$$
+\mathbf B_{D,i}=(S_{D,i,y},-S_{D,i,x},0)/\mu_s.
+$$
+
+With $A_3,A_4$ denoting the implemented neighbor matrices on occupied sites,
+the code comments specify $W=\operatorname{diag}(q_k)(D_3A_3-D_4A_4)$ and
+$E_D=-\mathbf x^T W\mathbf y$, where $\mathbf x,\mathbf y$ contain the spin
+components. $W$ and $\mathbf S_D$ are in joules, $\mu_s$ in J/T, and
+$\mathbf B_D$ in tesla. This transcribes the accepted implementation; it
+does not establish its material-specific physical interpretation.
+
+`main.m:43–51` sets `Dsim3=1.6e-23 J`, `Dsim4=1.28e-23 J`, or both zero
+when disabled. The explorer shows the enabled defaults and each signed weight.
+The source labels the absolute values user-selected and the ratio 1.25 a
+Fig. 3(b) estimate. That comment's publication locator and estimate are not
+verified here: physical parameter provenance remains **UNRESOLVED**.
+
+Selecting a neighbor highlights its J3/J4 sum in the complete `dmi.m` snapshot
+and its actual shift in the relevant `exchangej_.m` branch. An omitted
+surface contribution may have no corresponding shift in that branch; its
+zero assignment or reduced neighbor group is shown instead. Parameter and
+field snapshots are available in the expandable DMI source panel.
+
+**Historical DMI-02:** the imported operator had 544 antisymmetry mismatches
+on the 140-site audit. It was superseded by PR #18; retain that result as an
+import record, not a description of the current operator. Physical directed
+bond vectors, crystal-to-array mapping, shell assignments, and the applicability
+of the z-only approximation remain **UNRESOLVED**. Notebook page 8 is still a
+historical comparison and supplies no independent evidence for the current
+signs or magnitudes. See [model methodology](model-methodology.md#dzyaloshinskii--moriya-interaction).
+
+### Current DMI visualization check (2026-10-22)
+
+The displayed tables were exported from `structure-exchange.js` and compared
+against basis probes through the actual `distrib.m`, shift definitions,
+`exchangej_.m`, `dmi.m`, and DMI field-assembly lines in `integrate_llg.m`.
+MATLAB R2024b Update 1 (`24.2.0.2740171`, PCWIN64) ran these checks on CPU:
+
+| Core | Occupied-site probes | J3 directed entries | J4 directed entries | DMI directed entries | $W+W^T$ nonzeros |
+|---|---:|---:|---:|---:|---:|
+| 5 × 9 × 6 | 140 | 276 | 544 | 820 | 0 |
+| 9 × 17 × 6 | 468 | 1032 | 2048 | 3080 | 0 |
+
+All six masks, both row and layer parities, both terminating surfaces, lateral
+edges and corners passed. J1–J4 x/y/z sums matched exactly. The DMI sums and
+assembled x/y/z fields matched for enabled defaults, D3 only, D4 only, and
+both zero (absolute tolerances $10^{-37}$ J and $10^{-13}$ T). The complete
+9 × 17 × 6 displayed occupancy and color masks also matched `distrib.m`.
+The zero antisymmetry mismatch is an implementation result on these two
+lattices; it does not resolve the physical bond-vector or parameter evidence
+gaps or establish energy-derivative, dynamics, or size-convergence validation.
+
+Chromium passed 240 combinations of color, actual layer, interaction, lateral
+position, and padding display, including 1,056 neighbor selections. Checks
+covered linked source highlights, coefficient signs, active-neighbor colors,
+the atlas embed, local images, no JavaScript errors, and no page overflow at
+390, 768, and 1440 pixels. Desktop and narrow screenshots were inspected.
+The DMI comparison now uses the actual zero-padded `page-08.jpg` filename.
+The two complete source snapshots (`dmi.m`, `exchangej_.m`), parameter/field
+excerpts, and both numerical defaults matched the checked-in files.
+
+Commands used (local disposable harnesses, not a maintained test suite):
+
+```bash
+node --check docs/structure-exchange.js
+node /tmp/export_fe2o3_shell_dmi.cjs
+matlab -batch "run('C:/Users/zzf-m/OneDrive/code_softwares/spin_dynamics/Fe2O3/.review-20261013/verify_shell_dmi_visualization.m')"
+/home/zhuzibn/.venvs/webpage-capture/bin/python /tmp/check_fe2o3_shell_dmi.py
+git diff --check
+```
+
+No MATLAB implementation files, trajectories, or MAT results were modified.
+The shared `presentations/equations/spintronic_methods.tex` reference and its
+`sections/hamiltonian.tex` (effective-field and pair-field conventions) and
+`sections/atomistic_boundaries.tex` (retained-bond antisymmetry and open-edge
+omissions) informed the checks. No new publication claims were adopted;
+the merged code supplies implementation provenance, not scientific evidence.
 
 ## Maintaining this explanation
 
@@ -339,6 +414,12 @@ The MATLAB files remain the executable source of truth. Refresh the explorer's
 neighbor tables, coefficients, masks, shift names, boundary omissions, source
 snapshots, line ranges, and explanatory text together whenever relevant code
 changes. Verify all six site masks and every interaction and boundary option.
+`dmiBonds(color,k)` must reuse the J3/J4 offset lists with the actual layer
+sign; do not restore independent per-color DMI lists. Refresh `dmiSource`
+and `exchangeSource` as JSON-escaped complete MATLAB file text, and
+`dmiParameterSource`/`dmiFieldSource` from the displayed source ranges. Check
+those strings against the files after normalizing CRLF to LF, and update
+the visible line ranges and `dmiDefaults` with any source changes.
 The notebook atlas preserves the historical notebook; its embedded code
 explorer must describe current code. The 3D notebook schematic remains an
 explicit illustration without a verified MATLAB site mapping. Do not infer

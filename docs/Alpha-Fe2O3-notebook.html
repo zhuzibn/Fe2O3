@@ -749,7 +749,7 @@ H_dipole = −(1/μ_s) ∂E/∂S_i</div>
       <section class="implementation-guide" id="implementation" aria-labelledby="implementation-title">
         <p class="kicker">Code companion · distrib.m / exchangej_.m</p>
         <h2 id="implementation-title">Trace one atom from a mask to its neighbors.</h2>
-        <p>The linked explorer follows the current MATLAB masks, exchange offsets, shift names, source excerpts, and signed DMI operator. Its DMI view includes unshifted adjacent-layer reads and retains the unresolved DMI-02 issue. Notebook images and transcription above preserve the historical notes. <a href="model-methodology.md">Current methodology and known issues</a> · <a href="structure-exchange.html" target="_blank" rel="noopener">Open current implementation explorer</a> · <a href="structure-exchange-guide.md">Read the illustrated guide</a>.</p>
+        <p>The linked explorer follows the current MATLAB masks, exchange offsets, shift names, source excerpts, and the merged PR #18 DMI operator. Its DMI view reuses J3/J4 neighbors with separate weights and signs that alternate with the actual layer index; J1/J2 DMI is omitted. Select either occurrence of a motif layer to inspect the sign change. Physical bond vectors and parameter provenance remain unresolved. Notebook images and transcription above preserve the historical notes. <a href="model-methodology.md">Current methodology and known issues</a> · <a href="structure-exchange.html" target="_blank" rel="noopener">Open current implementation explorer</a> · <a href="structure-exchange-guide.md">Read the illustrated guide</a>.</p>
         <iframe src="structure-exchange.html" title="Interactive structure and exchange implementation explorer" loading="lazy"></iframe>
       </section>
     </main>

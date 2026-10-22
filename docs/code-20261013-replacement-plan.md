@@ -2,8 +2,17 @@
 
 Approved revision: 2026-10-15, revision 1, with the user's explicit instruction
 to remove the old plan rather than archive it. All ten difference-review
-items are accepted in `diff.md`. This is the active replacement plan; relative
-file paths below are relative to the repository root.
+items were accepted in `diff.md`. This is the completed import plan retained
+as a historical approval record; relative file paths below are relative to
+the repository root.
+
+**Status after merged PR #18 (`864d6b0`):** the import-time deferrals below
+are historical. ANI-01 and OUT-01 are corrected; TIME-01 update counts and
+saved-time labels are corrected, while saving the final endpoint remains
+open. The later J3/J4 DMI operator passes the recorded antisymmetry checks.
+See [current issue status](../diff.md#current-issue-status-2026-10-22) and
+[current methodology](model-methodology.md). These later fixes do not alter
+the original import decisions recorded below.
 
 ## Goal and Success Criteria
 

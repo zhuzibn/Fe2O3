@@ -1,3 +1,44 @@
+# Issue status and historical import review
+
+## Current issue status (2026-10-22)
+
+PR #18 is merged at `864d6b0`. Its reviewed MATLAB source (`77dece1`)
+matches this checkout. The import decisions and reproduced failures below
+are preserved as history; they do not describe the current issue status.
+
+| Issue | Current status | Change and evidence |
+|---|---|---|
+| ANI-01: anisotropy pole NaN | Resolved as an arithmetic defect | `3e20e90` guards the angular denominator. Both exact poles now give finite second-order fields; the recorded 50,000-vector off-pole comparison was unchanged. The sixth-order energy and material provenance remain unresolved. |
+| OUT-01: DMI-history zeros and lag | Resolved | `71db4fd` records the field at its evaluation-state index `ct1`. Small GPU checks recomputed every saved field from its corresponding spin with maximum difference 0. |
+| TIME-01: chunk duration and time labels | Update counts and timestamps corrected; final endpoint still unsaved | `ab7d82e` runs a full `gpusteps` per chunk and labels samples from zero. The default run evolves for 150 ps and saves 300 aligned frames at 0–149.5 ps. The computed 150 ps endpoint is cleared before output. |
+| DMI-02: coefficient antisymmetry | Resolved on tested finite lattices | The sign correction in `0ab09d8` was followed by the J3/J4 operator in `77dece1`. The current operator has 820 directed entries and zero antisymmetry mismatches on the original 140-site core, with additional lattice and shell-weight checks recorded. Physical bond mapping and parameter provenance remain unresolved. |
+
+The default saved times are `0, 0.5, ..., 149.5 ps`. A restart from the last
+saved spin therefore resumes from the 149.5 ps state. Deciding whether to
+save the final endpoint, with a matching timestamp and DMI field, remains
+open; the TIME-01 timing correction does not settle that output policy.
+
+Evidence and exact scope are collected in
+[merged PR verification](docs/model-methodology.md#merged-pr-18-verification),
+the [PR #18 snapshot report](docs/pr18-time-01-change-report.html), and the
+[current DMI check](docs/structure-exchange-guide.md#current-dmi-visualization-check-2026-10-22).
+The snapshot report retains its pre-merge metadata and recorded results.
+During this documentation update, source equality was checked and the
+current anisotropy pole/axis/empty-entry block passed a fresh CPU MATLAB
+check. No full simulation or material-model benchmark was run.
+
+Other open items include the crystal-to-array and exchange-shell mappings,
+parameter provenance, sixth-order anisotropy energy, dipole truncation,
+fixed fields within solver substages, and the predictor-corrector bootstrap
+signature mismatch. See the
+[maintained limitations](docs/model-methodology.md#known-limitations-and-open-decisions).
+
+## Historical comparison: 35bd00b and code_20261013
+
+The following comparison and 2026-10-15 import review describe the versions
+named in their headings. Their source paths, deferred decisions, and failed
+checks are retained as an audit trail. Current status is summarized above.
+
 The main difference is that `code_20261013` represents a substantially different simulation setup, even though the solver and exchange/dipole kernels are largely unchanged.
 
 | Area                       | `35bd00b`                     | `code_20261013`                          |
@@ -112,7 +153,8 @@ and interaction formulas.
 
 ### Deferred issue ANI-01: anisotropy produces NaN at the +z pole
 
-- Status: recorded; correction explicitly deferred by the user at Item 3.
+- Current status: resolved by `3e20e90`, merged in PR #18; see the status table above.
+- Import-time status: recorded; correction explicitly deferred by the user at Item 3.
 - Location: source `integrate_llg.m`, lines 162-176.
 - Symptom: for `(mx,my,mz)=(0,0,1)`, all three anisotropy-field components
   become `NaN`.
@@ -142,7 +184,8 @@ NaN  NaN  NaN
 
 ### Deferred issue OUT-01: DMI-history zeros and one-step misalignment
 
-- Status: recorded; correction explicitly deferred by the user at Item 8.
+- Current status: resolved by `71db4fd`, merged in PR #18; see the status table above.
+- Import-time status: recorded; correction explicitly deferred by the user at Item 8.
 - Location: source `integrate_llg.m`, lines 77-79, 230-232, and 254-259.
 - Cause: each field evaluated from spin frame `ct1` is stored at `ct1+1`.
   Field frame 1 remains at its allocation value of zero. Spin and field
@@ -165,7 +208,9 @@ NaN  NaN  NaN
 
 ### Deferred issue TIME-01: inherited chunk and saved-time mismatch
 
-- Status: recorded; correction explicitly deferred by the user at Item 8.
+- Current status: update counts and timestamps corrected by `ab7d82e`, merged
+  in PR #18; saving the final endpoint remains open. See the status table above.
+- Import-time status: recorded; correction explicitly deferred by the user at Item 8.
 - Present in both local and source versions.
 - Location: `main.m` time-vector construction and `integrate_llg.m`
   initialization of frame 1, `while ct1<gpusteps`, chunk carryover, and
@@ -228,23 +273,27 @@ NaN  NaN  NaN
   to honor the exact-source import; documentation whitespace was checked
   separately. No line-ending-only changes were introduced in existing files.
 
-### Unresolved source issue DMI-02: signed coefficients fail antisymmetry
+### Historical DMI-02: antisymmetry defect corrected in PR #18
 
-- Discovered during the approved topology audit; the accepted source formulas
-  are retained. No additional sign correction is authorized or applied.
+- Current status: the merged J3/J4 operator passes the recorded finite-lattice
+  antisymmetry checks. The failure below describes the superseded import.
+  Physical mapping and material provenance remain unresolved.
+- Discovered during the import topology audit. At that time, the accepted
+  source formulas were retained; no additional sign correction was authorized
+  or applied within the import.
 - On the 5 x 9 x 6 core, the complete signed scalar coefficient matrix C
-  has 140 occupied sites, 934 directed nonzero entries, and zero diagonal.
-  There are 544 directed entries for which Cij is not equal to -Cji
+  had 140 occupied sites, 934 directed nonzero entries, and zero diagonal.
+  There were 544 directed entries for which Cij was not equal to -Cji
   (272 unordered pairs). Both missing-bond and signed-value differences
   are included in this exact matrix comparison.
 - A concrete example in padded MATLAB indices is the pair (4,3,2) and
-  (3,3,1), for which Cij=Cji=+1. These are shifted terms already present
-  in the supplied source; the corrected unshifted current-state reads
-  do not change their signs.
-- This prevents treating that operator as a verified ordinary pairwise
+  (3,3,1), for which the imported operator gave Cij=Cji=+1. These shifted
+  terms were already present in the supplied source; the import correction
+  to unshifted current-state reads did not change their signs.
+- This prevented treating the imported operator as a verified ordinary pairwise
   z-directed DMI field under the declared antisymmetric-bond energy
-  convention. Physical bond assignment and energy consistency remain
-  unresolved; matching source code is not scientific validation.
+  convention. Physical bond assignment and energy consistency were unresolved
+  in that audit; matching source code is not scientific validation.
 - Evidence: MATLAB basis-spin probes over all 140 occupied sites, saved as
   .review-20261013/dmi-operator.mat. The test exercises all site masks,
   layer surfaces, and lateral edges. It does not establish crystallography.

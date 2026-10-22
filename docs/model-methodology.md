@@ -13,11 +13,14 @@ publication have not been reconciled, the affected item is marked
 property or silently changed in the code.
 
 The MATLAB files were imported from `code_20261013` after the ten-item review
-in [../diff.md](../diff.md). The sole code correction replaces 18 adjacent-layer
+in [../diff.md](../diff.md). The sole initial import correction replaced 18 adjacent-layer
 DMI reads from trajectory buffers with reads from the current spin state.
-Source anisotropy, DMI-history, and time-bookkeeping defects are retained.
-See [import verification](#import-verification) for focused checks and the
-additional unresolved DMI antisymmetry finding.
+Merged PR #18 (`864d6b0`) corrected ANI-01 and OUT-01, corrected TIME-01
+update counts and saved-time labels, and replaced the DMI operator with J3/J4
+shell weights that pass the tested antisymmetry checks. The final-time state
+is still excluded from the saved trajectory. See
+[merged PR verification](#merged-pr-18-verification) for resolution evidence
+and [import verification](#import-verification) for the historical defects.
 
 Evidence labels used below are:
 
@@ -181,9 +184,10 @@ The maintained [implementation guide](structure-exchange-guide.md) supplies the 
 24-entry color/interaction mapping and a worked explanation of the reversed
 `circshift` signs. The [interactive explorer](structure-exchange.html) connects
 the notebook, array masks, neighbor positions, boundary omissions, and exact
-current source excerpts. Its DMI view shows the signed adjacent-layer operator,
-including unshifted reads and the unresolved DMI-02 issue; labels show operator
-coefficients rather than physical DMI vectors.
+current source excerpts. Its DMI view reuses the J3/J4 neighbor tables with
+separate shell weights and signs determined by the actual target layer.
+Labels show algebraic energy weights, not physical DMI vectors. Both motif
+occurrences are selectable so the sign reversal is visible.
 Its coordinates are array indices, not reconstructed
 crystallographic positions. The author's confirmed notebook `0`/`1` box labels
 are distinct from the code's occupied/empty mask values.
@@ -233,8 +237,9 @@ sign convention, positive $J$ favors antiparallel alignment and negative $J$
 favors parallel alignment.
 
 The fourth-order term is no longer active. A consistent complete energy for
-the imported sixth-order field and DMI is `UNRESOLVED`; the expression above
-is not the complete imported Hamiltonian.
+the imported sixth-order field remains `UNRESOLVED`; the current code's DMI
+energy expression is transcribed below. The expression above is not the
+complete Hamiltonian.
 
 ### Exchange
 
@@ -252,9 +257,11 @@ has not yet been tested.
 
 ### Anisotropy
 
-The imported anisotropy field is exactly source `integrate_llg.m`, lines
-162-176. Define $q=\sin(\arccos s_z)$, $u=s_x/q$, $v=s_y/q$; the source
-sixth-order numerators are
+The current anisotropy block is `integrate_llg.m:159–173`. It retains the
+imported numerators with the ANI-01 denominator guard added in `3e20e90`.
+Define $q=\sin(\arccos s_z)$ and $\bar q=q+\mathbf{1}_{q=0}$, where the
+indicator is one only when the computed $q$ is zero. With
+$u=s_x/\bar q$, $v=s_y/\bar q$, the sixth-order numerators are
 
 $$
 A_x=12h_6q^5uv^2(2v+1)(2v-1)(-3+4v^2),\quad
@@ -265,10 +272,12 @@ $$
 A_z=-6h_6s_zq^4(-1+2u^2)(16u^4-16u^2+1).
 $$
 
-The source multiplies these by `mask=~(abs(mz)==1)` and divides by `mus`,
-then adds $2K_1s_z/\mu_s$ to z. These are a transcription of code, not a
-new energy derivation. The confirmed +z NaN defect (ANI-01) is retained.
-
+The code multiplies these by `mask=~(abs(mz)==1)` and divides by `mus`,
+then adds $2K_1s_z/\mu_s$ to z. The guarded division avoids the former +z
+`0/0`, and the mask removes the sixth-order contribution at both exact poles.
+Thus the pole fields are finite: $(0,0,2K_1s_z/\mu_s)$ for $s_z=\pm1$.
+**ANI-01 is resolved** as an arithmetic defect; the off-pole formula is
+unchanged. These expressions transcribe the code, not a new energy derivation.
 
 The second-order term uses `Ksim1=-8e-22 J`, and the sixth-order coefficient
 is `hk6=1.76e-27 J`. Their material provenance, the sixth-order energy
@@ -276,33 +285,65 @@ derivation, and the physical axis mapping remain `UNRESOLVED`.
 
 ### Dzyaloshinskii--Moriya interaction
 
-`dmi.m` constructs signed interlayer sums `nex` and `pre`. Its comments
-associate `nex` with `i-1` and physical positive z, and `pre` with `i+1` and
-physical negative z. The source sums and current explorer include
-mixed signs and additional unshifted adjacent-layer terms.
-
-Writing the signed source sums as $\mathbf S_{\mathrm{nex}}$ and
-$\mathbf S_{\mathrm{pre}}$, the imported DMI field is
+**Implemented at merged PR #18.** `exchangej_.m` first computes the current
+J3/J4 spin-neighbor sums. `dmi.m:9–14` reuses them with weights in joules:
 
 $$
-\mathbf B_D=\frac{D}{\mu_s}
-(S_{\mathrm{nex},y}+S_{\mathrm{pre},y},
--S_{\mathrm{nex},x}-S_{\mathrm{pre},x},0).
+q_k=1-2\operatorname{mod}(k,2)=(-1)^k,\qquad
+\mathbf S_{D,i}=q_{k_i}(D_3\mathbf S_{J3,i}-D_4\mathbf S_{J4,i}).
 $$
 
+The actual layer index $k$ determines the sign, not the three-layer motif
+label or target color. The same color at $k+3$ has the opposite sign.
+Array layer index increases opposite to physical $z$, as recorded in the
+code comments. Surface and lateral-edge omissions are inherited from the
+exchange sums. There are three J3 and six J4 neighbors per interior target;
+there is no J1/J2 DMI or unshifted adjacent-layer read. No uniform-sublattice
+approximation replaces individual neighboring spins.
 
-Here `Dsim=5.6e-24 J`. The DMI script runs even when `DMIenable=0`; the flag
-then sets `Dsim=0`. All added adjacent-layer terms now use the current spin
-state. In the supplied source, three-index reads from the four-dimensional
-`mmx/mmy/mmz` histories selected the first frame of each chunk instead.
+`integrate_llg.m:174–182` masks the sums and forms the field in tesla:
 
-**DMI-02:** on the 140-site verification lattice, the imported signed
-coefficient matrix has 934 directed nonzero entries and 544 entries with
-$C_{ij}\ne-C_{ji}$. This fails the antisymmetry condition for interpreting
-the operator as ordinary pairwise z-directed DMI under the declared energy
-convention. It is a source-formula finding, not caused by the current-state
-correction. The accepted signs are retained; physical bond assignment and
-a consistent energy derivative remain `UNRESOLVED`.
+$$
+\mathbf B_{D,i}=(S_{D,i,y},-S_{D,i,x},0)/\mu_s.
+$$
+
+The code comments specify
+
+$$
+W=\operatorname{diag}(q_k)(D_3A_3-D_4A_4),\qquad
+E_D=-\mathbf x^T W\mathbf y,
+$$
+
+where $A_3,A_4$ are the implemented neighbor matrices on occupied sites and
+$\mathbf x,\mathbf y$ are the spin-component vectors. This is a transcription
+of the accepted code's energy/field convention, not a new physical bond-vector
+assignment or a literature validation.
+
+`main.m:43–51` sets `Dsim3=1.6e-23 J` and `Dsim4=1.28e-23 J` when enabled,
+and both zero when disabled. Its comments describe the absolute values as
+user-selected and their ratio 1.25 as a Fig. 3(b) estimate. The exact
+publication locator and estimate have not been verified in this update;
+physical parameter provenance remains `UNRESOLVED`.
+
+**DMI-02 resolved for the tested operators:** the imported operator had 934
+directed nonzero coefficients and 544 antisymmetry mismatches on the 140-site lattice. It is
+superseded by the merged operator above, which has zero antisymmetry mismatches
+on the checked lattices. The historical import check below
+is retained as evidence of that earlier code. Physical shell assignments,
+crystal-to-array mapping, directed bond vectors, and the applicability of
+the z-only approximation remain `UNRESOLVED`.
+
+**Visualization/code verification (2026-10-22):** CPU basis probes through
+the actual scripts matched the displayed sums and field assembly on
+5 × 9 × 6 (140 sites) and 9 × 17 × 6 (468 sites) cores, including all masks,
+layer parities, surfaces, and lateral edges. The current operator has 820
+and 3080 directed entries respectively, with zero $W+W^T$ nonzeros on both
+lattices. Enabled, isolated-shell, and disabled weights passed. See the
+[visualization check record](structure-exchange-guide.md#current-dmi-visualization-check-2026-10-22)
+for commands, tolerances, and browser checks. The separate
+[PR review](pr18-time-01-change-report.html#evidence) also records a
+normalized-coefficient energy finite-difference check, summarized below.
+These implementation checks do not establish material-specific physical validity.
 
 ### Dipole approximation
 
@@ -433,19 +474,29 @@ gathered into CPU trajectory buffers. Every `savetstep`-th in-chunk state is
 copied to `mmx_`, `mmy_`, and `mmz_`; after the loop these are masked and
 renamed `mmx`, `mmy`, and `mmz`.
 
-**TIME-01:** each nominal 10,000-step chunk stores the initial state and
-performs 9,999 updates. At the default 150 chunks and `1e-16 s` timestep,
-actual evolution is 149.985 ps rather than 150 ps. The time vector begins at
-`tstep` although the first saved state is at elapsed time zero; the time-label
-mismatch accumulates across chunks. The requested final-time state is not
-saved. These inherited behaviors are explicitly retained.
+**TIME-01 timing corrected (`ab7d82e`):** `while ct1<gpusteps+1` performs
+`gpusteps` updates per chunk. Frame 1 holds the chunk's initial state, and
+the last update grows the spin buffer to slot `gpusteps+1`, which supplies
+the next chunk's initial state. At the defaults, 150 × 10,000 updates at
+`1e-16 s` evolve for 150 ps. Both spin and DMI histories use
+`1:savetstep:gpusteps`, and `main.m:104` labels the saved frames with
+`t=(0:gpurun_number*final_m_savestep-1)*savetstep*tstep`. For the checked
+integral chunk/step ratios, labels match elapsed time and start at zero.
 
-**OUT-01:** DMI fields evaluated from state `ct1` are recorded at `ct1+1`.
-The first field slot stays zero. With stride 5000, each chunk saves slots
-1 and 5001: an unwritten zero and the field evaluated from spin slot 5000.
-Thus 150 of the 300 default saved DMI frames are unfilled zeros, and the
-other 150 lag the corresponding spins by one timestep. This source defect
-is explicitly retained and is separate from the corrected DMI state reads.
+**Final endpoint still unsaved:** sampling includes each chunk's start and
+excludes its end. The default 300 frames therefore cover
+`0, 0.5, ..., 149.5 ps`. The computed 150 ps endpoint is cleared before
+`final.mat` is written; a restart from the last saved frame uses 149.5 ps.
+Whether to save the endpoint with a matching timestamp and DMI field remains
+an open output decision. Non-integral `gpusave/tstep` behavior and the memory
+cost of dynamically growing the extra slot have not been validated.
+
+**OUT-01 resolved (`71db4fd`):** fields evaluated from state `ct1` are now
+recorded at `ct1`, while its updated spin is stored at `ct1+1`. Field slot 1
+is populated, and every saved field is paired with its evaluation state.
+The small GPU checks recomputed each DMI field from its saved spin frame
+with zero difference. This recording fix is separate from the initial
+import's DMI current-state correction and the later DMI operator change.
 
 ## Initial conditions
 
@@ -474,7 +525,8 @@ here using the exact SI electron volt and are not separate inputs.
 | $J_4$ | $2.8041\times10^{-21}\ \mathrm{J}$ | $17.5018\ \mathrm{meV}$ | Implemented; provenance conflict |
 | $K_1$ | $-8\times10^{-22}\ \mathrm{J}$ | $-4.9932\ \mathrm{meV}$ | Imported; source locator unresolved |
 | `hk6` | $1.76\times10^{-27}\ \mathrm{J}$ | $0.000010985\ \mathrm{meV}$ | Imported; energy mapping and source locator unresolved |
-| $D$ | $5.6\times10^{-24}\ \mathrm{J}$ | $0.034953\ \mathrm{meV}$ | Imported; sign/topology source unresolved; DMI-02 |
+| $D_3$ | $1.6\times10^{-23}\ \mathrm{J}$ | `Dsim3`; J3 neighbor weights | PR #18; absolute value user-selected according to code; physical provenance unresolved |
+| $D_4$ | $1.28\times10^{-23}\ \mathrm{J}$ | `Dsim4`; $D_3/D_4=1.25$ | PR #18; Fig. 3(b) estimate cited in code not independently verified |
 | $g$ | $2$ | $\gamma\approx1.7590\times10^{11}\ \mathrm{rad\,s^{-1}\,T^{-1}}$ | Implemented |
 | $\mu_s$ | $4.2313\mu_B$ | $3.9241\times10^{-23}\ \mathrm{J\,T^{-1}}$ | Implemented; source locator unresolved |
 | Magnetization density `ms` | `24*mus/(sqrt(3)*a^2*c)` | $1.5256\times10^6\ \mathrm{A\,m^{-1}}$ | Imported; physical normalization unresolved |
@@ -495,8 +547,8 @@ $J_1$--$J_4$ must be resolved before the comment or values are changed.
 | Hematite crystal/site motif | Three-layer repeating occupancy and six color-labeled site masks | `distrib.m`; notebook pp. 1, 7--11 | Page-10 diagram/implementation agreement verified for a $3\times13\times3$ core; `UNRESOLVED`: no lattice-vector/basis table with exact paper locator |
 | Exchange shells | Site-dependent $J_1$--$J_4$ offset sums; intended bulk multiplicities $1,3,3,6$ | `exchangej_.m`; notebook pp. 2--4, 9--11 | Notebook/code agreement and reciprocity passed the finite-lattice audit above; `UNRESOLVED`: physical shell distances and source mapping |
 | Exchange values | Four values listed above | `main.m`; notebook pp. 2--3 | `UNRESOLVED`: code comment and copied table provenance conflict |
-| Anisotropy | Second-order axial term plus source sixth-order field | `integrate_llg.m` | `UNRESOLVED`: sixth-order energy, axis and parameter provenance; ANI-01 retained |
-| DMI | Signed interlayer sums including unshifted adjacent-layer terms | `dmi.m`; `integrate_llg.m` | `UNRESOLVED`: physical bonds and energy mapping; finite-lattice antisymmetry fails (DMI-02) |
+| Anisotropy | Second-order axial term plus guarded sixth-order field | `integrate_llg.m:159–173` | ANI-01 arithmetic defect resolved; `UNRESOLVED`: sixth-order energy, axis and parameter provenance |
+| DMI | $q_k(D_3S_{J3}-D_4S_{J4})$ sums; code energy $-\mathbf x^T W\mathbf y$ | `dmi.m:1–15`; `main.m:43–51`; `integrate_llg.m:174–182` | DMI-02 antisymmetry defect resolved on tested lattices; `UNRESOLVED`: physical bonds, shell mapping, and parameter provenance |
 | Dipole | Three same-layer neighbors at $0.5067\ \mathrm{nm}$, refreshed every 50 steps | `dipole_.m`; notebook p. 6 | `UNRESOLVED`: truncation justification and source locator missing |
 | LLG/LLGS | Fixed-length LL form in tesla convention | GPU kernels; local equation reference | Focused RK4 precession, damping, and torque checks passed; general convergence unresolved |
 | Boundary | Empty two-cell lateral padding; omitted out-of-range layer bonds | `distrib.m`, `exchangej_.m`, `dmi.m` | Finite-lattice notebook/code agreement audited above; broader coordination and finite-size tests missing |
@@ -505,8 +557,8 @@ $J_1$--$J_4$ must be resolved before the comment or values are changed.
 ## Validation requirements
 
 No maintained automated test suite or accepted production benchmark is
-provided. Focused import checks are recorded below. An earlier manual
-structure check passed: the corrected page-10 diagram agrees with
+provided. Focused merged-PR and historical import checks are recorded below.
+An earlier manual structure check passed: the corrected page-10 diagram agrees with
 all six `distrib.m` site masks for a $3\times13\times3$ unpadded core. Before
 using the model for quantitative claims, add or perform the remaining checks
 in order:
@@ -545,8 +597,9 @@ table.
   checked for compatibility with generated dimensions and site masks.
 - No explicit lattice-vector, coordinate, or bond-table data structure exists.
 - The exchange provenance and shell mapping are unresolved.
-- Imported DMI coefficients fail the finite-lattice antisymmetry check
-  (DMI-02); physical bond orientation and energy consistency remain unresolved.
+- Physical DMI bond orientation, shell mapping, parameter provenance, and
+  material-specific energy interpretation remain unresolved. DMI-02 describes
+  the superseded import operator, not the current J3/J4 implementation.
 - `UNRESOLVED` — notebook symmetry reasoning: $C_3$ symmetry cancels the
   in-plane components in the symmetry-related sum; it does not force every
   individual bond's DMI vector to lie along $z$, as Dannegger et al., Fig. 4,
@@ -560,13 +613,69 @@ table.
   function signature and is not presently a verified runnable path.
 - Heun and predictor-corrector omit torque arguments; the runtime guard does
   not protect against nonzero STT in those modes.
-- ANI-01, OUT-01, and TIME-01 remain explicitly deferred; see the descriptions
-  above and the accepted decision record in `diff.md`.
+- The final-time state is computed but not saved: default output ends at
+  149.5 ps although evolution reaches 150 ps. ANI-01, OUT-01, and the TIME-01
+  update-count/time-label defects are corrected; endpoint saving remains open.
 - `final.mat` overwrites an existing output and stores the remaining workspace.
 - No accepted production baseline or scientific convergence validation is
   provided by the import checks.
 
+## Merged PR #18 verification
+
+Documentation reconciliation on 2026-10-22 checked the merged source at
+`864d6b0` against the reviewed head `77dece1`:
+
+```bash
+git diff --exit-code 77dece1 HEAD -- '*.m'
+```
+
+The comparison passed with no MATLAB differences. The
+[PR #18 report](pr18-time-01-change-report.html#evidence) retains its
+pre-merge metadata, exact review command, harness, and full log. Its recorded
+checks therefore apply to this merged source; they were not rerun in full
+for this documentation update. They used MATLAB R2024b Update 1
+(`24.2.0.2740171`, PCWIN64) and an NVIDIA GeForce RTX 3060 Laptop GPU
+(compute capability 8.6, 6,441,926,656 bytes reported memory).
+
+| Issue/check | Recorded result and scope |
+|---|---|
+| ANI-01 | Old +z NaNs reproduced; merged ±z, +x, and empty-entry fields finite. All 50,000 seeded off-pole unit-vector fields matched the old formula exactly. A small +z-initialized GPU run remained finite. |
+| OUT-01 | Every saved DMI field matched a fresh evaluation from its saved spin, with maximum difference 0, for strides 1, 2, and 8. |
+| TIME-01 | Three chunks of eight updates saved 24, 12, and 3 frames at strides 1, 2, and 8, with correct elapsed-time labels. Three × eight versus one × 24 updates at stride 2 gave identical saved spins. |
+| DMI-02 | Basis probes on 5 × 9 × 6, 6 × 10 × 9, and 4 × 8 × 3 cores gave 820, 1744, and 212 directed entries, respectively, with zero antisymmetry mismatches. A 140-site finite-difference check of the code energy, using normalized coefficients and perturbation $10^{-6}$, had maximum absolute error $3.98\times10^{-9}$ against a $10^{-8}$ tolerance. |
+| Spin invariants | Small GPU cases had finite outputs, zero empty sites, and maximum occupied-spin norm error $1.11\times10^{-16}$. |
+
+The GPU cases used a 5 × 9 × 6 core (140 occupied sites), default RK4 and
+torques, `tstep=1e-16 s`, and disabled dipole coupling. The separate
+[current DMI visualization check](structure-exchange-guide.md#current-dmi-visualization-check-2026-10-22)
+also covers all masks, layer parities, surfaces, edges, isolated D3/D4
+weights, and disabled DMI on 140- and 468-site lattices.
+
+This documentation update additionally executed the exact current anisotropy
+block on CPU via `matlab -batch`, with `(mx,my,mz)` equal to +z, -z, +x,
+and an empty entry, `Ksim1=-8e-22`, `hk6=1.76e-27`, and unit moment.
+It returned `(0,0,-1.6e-21)`, `(0,0,1.6e-21)`, and two zero vectors,
+respectively, matching the expected arithmetic. MATLAB reported the same
+version and platform as above. No trajectory or MAT output was produced.
+
+Exact CPU command executed from the repository root:
+
+```bash
+matlab -batch "s=fileread('integrate_llg.m'); first=strfind(s,'%% calcuation for anisotropy field'); last=strfind(s,'%% calcuation for DMI field'); mmxtmp=[0,0,1,0]; mmytmp=[0,0,0,0]; mmztmp=[1,-1,0,0]; hk6=1.76e-27; Ksim1=-8e-22; muigpu=1; eval(s(first(1):last(1)-1)); actual=[hani_x;hani_y;hani_z]'; assert(isequal(actual,[0,0,-1.6e-21;0,0,1.6e-21;0,0,0;0,0,0])); fprintf('PASS current ANI-01: +z, -z, +x and empty entries are finite and match expected fields with unit moment.\n'); fprintf('MATLAB %s; %s; CPU only; no trajectory or MAT output.\n',version,computer);"
+```
+
+The default 150 ps duration is a source-derived update count, not a full-run
+benchmark. Endpoint saving, non-integral chunk/step ratios, alternative
+solver paths, production memory/runtime cost, timestep/size convergence,
+and material-specific physical validation remain outside these checks.
+The local Hamiltonian, LLGS, and atomistic-boundary equation references
+listed below informed the convention and validation scope; no new
+publication-derived material claim was adopted.
+
 ## Import verification
+
+This section records the 2026-10-15 import, before the fixes above. Its
+reproduced defects and source-equality checks describe that historical version.
 
 Focused checks on 2026-10-15 used MATLAB R2024b Update 1 (24.2.0.2740171,
 PCWIN64) and an NVIDIA GeForce RTX 3060 Laptop GPU, compute capability 8.6,
@@ -584,9 +693,10 @@ properties for these cases, not material-model validity.
 | Accepted source defects | +z anisotropy NaN reproduced; source DMI-history index trace and nominal/actual update-count mismatch preserved |
 | Small GPU/output smoke | 140 occupied sites, 2 chunks of 7 updates, 8 saved frames; finite spins, zero empty sites, maximum occupied-spin norm error $1.11\times10^{-16}$; expected cleanup and unfilled DMI frames preserved |
 
-For example, the DMI coefficient pair between padded sites `(4,3,2)` and
+In that imported version, the DMI coefficient pair between padded sites `(4,3,2)` and
 `(3,3,1)` has $C_{ij}=C_{ji}=+1$, rather than opposite signs. This finding
-does not authorize a new sign change; the accepted source formulas remain.
+belongs to the superseded operator; it must not be applied to the merged
+J3/J4 operator without a new check.
 
 The disposable local harness and old MATLAB snapshots are in ignored
 `.review-20261013/`. Commands from the WSL workspace were:

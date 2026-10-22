@@ -66,26 +66,30 @@
     <h1>From sites to sums.</h1>
     <p class="intro">Follow one colored atom through <code>distrib.m</code>, its exchange or DMI neighbors, and the shifts in <code>exchangej_.m</code> or <code>dmi.m</code>. Every view below follows the same selection.</p>
     <p><a href="unit-cell.html">Explore the 3D unit-cell schematic</a> · <a href="structure-exchange-guide.md">Complete guide &amp; neighbor table</a> · <a href="Alpha-Fe2O3-notebook.html">Notebook atlas</a></p>
-    <p class="note"><strong>Current MATLAB implementation.</strong> Masks, exchange offsets, signed DMI reads, shift names, and embedded excerpts correspond to the checked-in code. The DMI view includes unshifted adjacent-layer terms and preserves the unresolved <strong>DMI-02</strong> antisymmetry failure. See <a href="model-methodology.md">methodology and known issues</a>. Notebook images remain historical evidence.</p>
+    <p class="note"><strong>Current MATLAB implementation · PR #18.</strong> DMI reuses the J3/J4 neighbor sums with separate shell weights and alternating layer signs. J1/J2 have no DMI contribution. Masks, offsets, and embedded excerpts follow the merged code. Physical bond vectors and parameter provenance remain <strong>UNRESOLVED</strong>; see <a href="model-methodology.md">methodology and known issues</a>. Notebook images remain historical records.</p>
     <p class="note">This is not an independent crystal reconstruction. Notebook box labels <strong>0 / 1</strong> are not code occupancy: <code>atomtype_=1</code> means an atom is present. Positions below use unpadded <strong>(row r, column c, layer k)</strong>.</p>
   </header>
   <noscript><p>The interactive views require JavaScript. The complete guide linked above includes all masks, neighbor offsets, and code locations.</p></noscript>
   <div class="controls" aria-label="Explorer controls">
     <label>Target site<select id="target"><option value="green">Layer 1 · green</option><option value="orange">Layer 1 · orange</option><option value="blue">Layer 2 · blue</option><option value="purple">Layer 2 · purple</option><option value="red">Layer 3 · red</option><option value="black">Layer 3 · black</option></select></label>
     <label>Interaction<select id="shell"><option>J1</option><option>J2</option><option selected>J3</option><option>J4</option><option>DMI</option></select></label>
-    <label>Layer position<select id="boundary"><option value="interior">Interior</option><option value="surface">Terminating surface</option></select></label>
+    <label>Target layer k<select id="boundary"><option value="4">k=4 · interior · even</option></select></label>
     <label>Lateral position<select id="edge"><option value="interior">Interior</option><option value="left">Left edge</option></select></label>
     <label>Array display<select id="padding"><option value="show">Show empty padding</option><option value="hide">Hide padding cells</option></select></label>
   </div>
   <div id="summary" class="summary" aria-live="polite"></div>
   <div class="legend" id="legend"></div>
   <section id="dmi-note" class="note" hidden>
-    <h2>DMI / signed adjacent-layer operator</h2>
-    <p><code>dmi.m</code> constructs signed sums: <strong style="color:#125d88">nex = i−1 (physical +z)</strong>, <strong style="color:#ae6633">pre = i+1 (physical −z)</strong>. Line colors identify layer groups; labels <strong>C = +1 / −1</strong> identify coefficients inside their sum. Atom colors retain their site meaning. There are ten listed reads per interior target, including one unshifted adjacent-layer read. Surfaces and lateral edges omit absent neighbors.</p>
-    <pre>B_DMI,x = (Dsim / muigpu) (S_nex,y + S_pre,y)
-B_DMI,y = −(Dsim / muigpu) (S_nex,x + S_pre,x)
-B_DMI,z = 0</pre>
-    <p class="caption"><code>Dsim = 5.6e−24 J</code> when enabled (<a href="../main.m">main.m</a>, line 44); zero when disabled. Field assembly: <a href="../integrate_llg.m">integrate_llg.m</a>, lines 186–188. Link labels identify coincident J1/J3/J4 offsets or DMI-only offsets; they do not assign physical shells. Coefficient labels are not physical DMI-vector arrows: the imported operator fails the recorded pair antisymmetry check (DMI-02). Physical directed bonds and the energy mapping remain <strong>UNRESOLVED</strong>. Notebook page 8’s J3/J4-only statement does not describe this operator.</p>
+    <h2>DMI / J3 and J4 shell weights</h2>
+    <p><strong style="color:#125d88">Blue links: J3, weight (−1)<sup>k</sup>D3.</strong> <strong style="color:#ae6633">Brown links: J4, weight −(−1)<sup>k</sup>D4.</strong> Atom colors retain their site meaning. An interior target has three J3 and six J4 neighbors. There is no unshifted J1 read. Surfaces and lateral padding omit absent neighbors exactly as in <code>exchangej_.m</code>.</p>
+    <p id="dmi-layer" aria-live="polite"></p>
+    <pre>S_D = (−1)^k (D3 S_J3 − D4 S_J4)    [J]
+B_DMI = (S_D,y, −S_D,x, 0) / μs      [T]
+W = diag((−1)^k) (D3 A3 − D4 A4)
+E_D = −xᵀ W y                       [J]</pre>
+    <p class="caption">D3 = <code>Dsim3 = 1.6e−23 J</code>; D4 = <code>Dsim4 = 1.28e−23 J</code>. Both become zero when <code>DMIenable=0</code>; the view shows enabled defaults. A3/A4 are the implemented neighbor matrices; x/y are occupied-spin components. The energy expression is transcribed from <code>dmi.m</code>. Layer k increases opposite to physical z. The three-layer mask motif repeats with opposite DMI signs: inspect both k options for each color.</p>
+    <p class="caption">Labels show algebraic weights, not physical DMI-vector arrows. The old DMI-02 mismatch belongs to the superseded operator. The current code's physical shell assignments, directed vectors, and parameter provenance remain <strong>UNRESOLVED</strong>. Notebook page 8 records the J3/J4 idea, not evidence for the new weights or their signs.</p>
+    <details><summary>Current parameter and field source</summary><p class="caption"><a href="../main.m">main.m</a> · lines 43–51. The Fig. 3(b) comment is source text; its publication locator and estimate are not verified here.</p><pre id="dmi-parameters"></pre><p class="caption"><a href="../integrate_llg.m">integrate_llg.m</a> · lines 174–182</p><pre id="dmi-field"></pre></details>
   </section>
   <div class="panels">
     <section class="panel">
@@ -102,15 +106,15 @@ B_DMI,z = 0</pre>
     <section class="panel wide">
       <h2>03 / Trace each neighbor into a shift</h2>
       <p class="caption">Select a row to highlight the same neighbor in both diagrams and its variable in the source. Layer index <code>i</code> in MATLAB corresponds to <code>k</code> here.</p>
-      <div class="table-scroll"><table><thead><tr><th>Select</th><th>Neighbor color</th><th>Link / group</th><th>Core (r,c,k)</th><th>Offset (Δr,Δc,Δk)</th><th>Read at target</th><th>Contribution</th></tr></thead><tbody id="neighbors"></tbody></table></div>
+      <div class="table-scroll"><table><thead><tr><th>Select</th><th>Neighbor color</th><th>Shell / weight</th><th>Core (r,c,k)</th><th>Offset (Δr,Δc,Δk)</th><th>Read at target</th><th>Contribution</th></tr></thead><tbody id="neighbors"></tbody></table></div>
     </section>
     <section class="panel wide">
       <div class="source-row">
-        <div><h2>04 / Current implementation</h2><p id="source-location" class="caption"></p><pre id="source-code" tabindex="0" aria-label="Current MATLAB code excerpt"></pre></div>
+        <div><h2>04 / Current implementation</h2><p id="source-location" class="caption"></p><pre id="source-code" tabindex="0" aria-label="Current MATLAB code excerpt"></pre><div id="dmi-neighbor-source" hidden><h3>Where the shell neighbors come from</h3><div id="neighbor-source"></div></div></div>
         <div><h2>Why the signs reverse</h2><pre>shifted = circshift(spins,[dr,dc]);
 shifted(r,c,k) = spins(r-dr,c-dc,k);
 % with wrapping of the allocated array</pre>
-          <p>A positive column shift gathers the neighbor at <code>c−1</code>. Shift definitions are in <a href="../integrate_llg.m">integrate_llg.m</a>, lines 98–136.</p>
+          <p>A positive column shift gathers the neighbor at <code>c−1</code>. Shift definitions are in <a href="../integrate_llg.m">integrate_llg.m</a>, lines 95–133.</p>
           <p id="explanation"></p>
           <p class="caption">Source excerpts are embedded snapshots so this page works offline. For each term, the actual implementation repeats the sum for x, y, and z. The complete guide lists their line ranges.</p>
         </div>
@@ -118,7 +122,7 @@ shifted(r,c,k) = spins(r-dr,c-dc,k);
     </section>
   </div>
   <details id="notebook-source"><summary>Compare with the original structure and annotations — <span id="page-label"></span></summary><a id="pdf-link" href="../Alpha-Fe2O3.pdf#page=10">Open original PDF</a><img id="notebook-image" class="source-image" src="Alpha-Fe2O3-pages/page-10.jpg" alt="Notebook page 10 showing structure sketches, array positions and exchange annotations"></details>
-  <footer>Evidence: author-confirmed notebook notation and existing MATLAB code. The recorded 140-site exchange audit matched all 24 color/exchange combinations, components, and surface/edge omissions. This does not validate the signed DMI operator; DMI-02 remains unresolved. Physical shell assignments and crystallographic mapping remain unresolved. See <a href="model-methodology.md">model methodology</a>.</footer>
+  <footer>Implementation sources: distrib.m, exchangej_.m, dmi.m, main.m, and integrate_llg.m at merged PR #18 (864d6b0). The explorer depicts array indexing and shell weights; it does not establish physical shell assignments, crystallographic mapping, or material parameters. See the <a href="structure-exchange-guide.md#current-dmi-visualization-check-2026-10-22">current visualization checks</a> and <a href="model-methodology.md">model methodology</a>.</footer>
 </main>
 <script src="structure-exchange.js"></script>
 </body>
