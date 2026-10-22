@@ -21,13 +21,10 @@ mmztmpJ3=zeros(natomW,natomL,natomH);
 mmxtmpJ4=zeros(natomW,natomL,natomH);
 mmytmpJ4=zeros(natomW,natomL,natomH);
 mmztmpJ4=zeros(natomW,natomL,natomH);
-% DMI net layer matrix
-mmxtmpd_nex=zeros(natomW,natomL,natomH);
-mmytmpd_nex=zeros(natomW,natomL,natomH);
-mmztmpd_nex=zeros(natomW,natomL,natomH);
-mmxtmpd_pre=zeros(natomW,natomL,natomH);
-mmytmpd_pre=zeros(natomW,natomL,natomH);
-mmztmpd_pre=zeros(natomW,natomL,natomH);
+% Shell-weighted DMI neighbor sums [J]; dmi.m reuses current J3/J4 sums.
+dmi_sumx=zeros(natomW,natomL,natomH);
+dmi_sumy=zeros(natomW,natomL,natomH);
+dmi_sumz=zeros(natomW,natomL,natomH);
 %
 hdmi_x=zeros(natomW,natomL,natomH);
 hdmi_y=zeros(natomW,natomL,natomH);
@@ -85,7 +82,7 @@ while ~(ct3>ct3run)
     end
     clear tmpx tmpy tmpz
     ct1=1; %count 1
-    while ct1<gpusteps
+    while ct1<gpusteps+1
         mmxtmp=mmx(:,:,:,ct1);
         mmytmp=mmy(:,:,:,ct1);
         mmztmp=mmz(:,:,:,ct1);
@@ -159,9 +156,9 @@ while ~(ct3>ct3run)
         %% calcuation for anisotropy field
 
       
-        cosphi=mmxtmp./sin(acos(mmztmp));
-        sinphi=mmytmp./sin(acos(mmztmp));
         sintheta=sin(acos(mmztmp));
+        cosphi=mmxtmp./(sintheta+(sintheta==0));%ANI-01: avoid 0/0 at the +-z poles
+        sinphi=mmytmp./(sintheta+(sintheta==0));
         costheta=mmztmp;
 
         hk_x=hk6.*(6.*sintheta.^5.*2.*cosphi.*sinphi.*(2.*sinphi+1).*(2.*sinphi-1).*(-3+4.*sinphi.^2).*sinphi);
@@ -176,15 +173,12 @@ while ~(ct3>ct3run)
         hani_z=2*Ksim1./muigpu.*mmztmp+hk_z2./muigpu;%+4*Ksim2./muigpu.*mmztmp.^3;%[T]
        %% calcuation for DMI field
         dmi()
-        mmxtmpd_nex=mmxtmpd_nex.*atomtype_;
-        mmytmpd_nex=mmytmpd_nex.*atomtype_;
-        mmztmpd_nex=mmztmpd_nex.*atomtype_;
-        mmxtmpd_pre=mmxtmpd_pre.*atomtype_;
-        mmytmpd_pre=mmytmpd_pre.*atomtype_;
-        mmztmpd_pre=mmztmpd_pre.*atomtype_;
+        dmi_sumx=dmi_sumx.*atomtype_;
+        dmi_sumy=dmi_sumy.*atomtype_;
+        dmi_sumz=dmi_sumz.*atomtype_;
 
-        hdmi_x=Dsim./muigpu.*(mmytmpd_nex+mmytmpd_pre);
-        hdmi_y=-Dsim./muigpu.*(mmxtmpd_nex+mmxtmpd_pre);
+        hdmi_x=dmi_sumy./muigpu;
+        hdmi_y=-dmi_sumx./muigpu;
         hdmi_z=zeros(size(hex_x,1),size(hex_x,2),size(hex_x,3));
         
 
@@ -227,9 +221,9 @@ while ~(ct3>ct3run)
         end
 
         mmx(:,:,:,ct1+1)=gather(sxx); mmy(:,:,:,ct1+1)=gather(syy); mmz(:,:,:,ct1+1)=gather(szz);
-        hdmi_tmpx(:,:,:,ct1+1)=hdmi_x;
-        hdmi_tmpy(:,:,:,ct1+1)=hdmi_y;
-        hdmi_tmpz(:,:,:,ct1+1)=hdmi_z;
+        hdmi_tmpx(:,:,:,ct1)=hdmi_x;
+        hdmi_tmpy(:,:,:,ct1)=hdmi_y;
+        hdmi_tmpz(:,:,:,ct1)=hdmi_z;
         ct1=ct1+1;
         if ~(ct3==1 && ~(ct1>3)) && ct1>3
             tmpxn0=mmx(:,:,:,ct1);tmpyn0=mmy(:,:,:,ct1);tmpzn0=mmz(:,:,:,ct1);
@@ -251,12 +245,12 @@ while ~(ct3>ct3run)
     tmp2xn0=mmx(:,:,:,end);tmp2yn0=mmy(:,:,:,end);tmp2zn0=mmz(:,:,:,end);
     tmp2xn1=mmx(:,:,:,end-1);tmp2yn1=mmy(:,:,:,end-1);tmp2zn1=mmz(:,:,:,end-1);
     tmp2xn2=mmx(:,:,:,end-2);tmp2yn2=mmy(:,:,:,end-2);tmp2zn2=mmz(:,:,:,end-2);
-    mmx_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmx(:,:,:,1:savetstep:end));
-    mmy_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmy(:,:,:,1:savetstep:end));
-    mmz_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmz(:,:,:,1:savetstep:end));
-    hdmi_allx(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=hdmi_tmpx(:,:,:,1:savetstep:end);
-    hdmi_ally(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=hdmi_tmpy(:,:,:,1:savetstep:end);
-    hdmi_allz(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=hdmi_tmpz(:,:,:,1:savetstep:end);
+    mmx_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmx(:,:,:,1:savetstep:gpusteps));
+    mmy_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmy(:,:,:,1:savetstep:gpusteps));
+    mmz_(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=gather(mmz(:,:,:,1:savetstep:gpusteps));
+    hdmi_allx(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=hdmi_tmpx(:,:,:,1:savetstep:gpusteps);
+    hdmi_ally(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=hdmi_tmpy(:,:,:,1:savetstep:gpusteps);
+    hdmi_allz(:,:,:,(ct3-1)*final_m_savestep+1:ct3*final_m_savestep)=hdmi_tmpz(:,:,:,1:savetstep:gpusteps);
     ct3=ct3+1;
 end
 
@@ -268,8 +262,7 @@ clear tmpzn0 tmpzn1 tmpzn2 tmpzn3
 clear mmxtmpJ1 mmxtmpJ2 mmxtmpJ3 mmxtmpJ4
 clear mmytmpJ1 mmytmpJ2 mmytmpJ3 mmytmpJ4
 clear mmztmpJ1 mmztmpJ2 mmztmpJ3 mmztmpJ4
-clear mmxtmpd_nex mmytmpd_nex mmztmpd_nex
-clear mmxtmpd_pre mmytmpd_pre mmztmpd_pre
+clear dmi_sumx dmi_sumy dmi_sumz
 clear hdmi_tmpx hdmi_tmpy hdmi_tmpz
 
 mmx=mmx_.*atomtype_;
@@ -279,4 +272,3 @@ hdmi_allx=hdmi_allx.*atomtype_;
 hdmi_ally=hdmi_ally.*atomtype_;
 hdmi_allz=hdmi_allz.*atomtype_;
 clear mmx_ mmy_ mmz_
-t=t(1:savetstep:end);

@@ -40,10 +40,14 @@ a=5.067e-10;
 c=13.882e-10;
 tz=c/6*natomH;
 ms=12*mus/c/a^2/sqrt(3)*2;%[A/m], saturation magnetization
-if DMIenable 
-    Dsim=5.6e-24;     
+% Shell-resolved z-DMI magnitudes [J]; shells 1 and 2 are omitted.
+% D3/D4=1.25 is a Fig.3(b) estimate; absolute values are user-selected.
+if DMIenable
+    Dsim3=1.6e-23;
+    Dsim4=1.28e-23;
 else
-    Dsim=0;
+    Dsim3=0;
+    Dsim4=0;
 end
 alp=0.001;%Gilbert damping
 %% electrical parameters
@@ -90,9 +94,6 @@ tstep=1e-16;%one step is 0.1fs
 savetstep=5000;%save data every ~ loops
 gpusteps=round(gpusave/tstep);
 runtime=gpurun_number*gpusave;
-totstep=round(runtime/tstep);
-t=linspace(tstep,runtime,totstep);
-
 if ~mod(gpusteps,savetstep)==0
     error('gpusteps should be multiple integer times of savetstep, otherwise there might be errors')
 end
@@ -100,6 +101,7 @@ tmp1=ones(1,gpusteps);
 tmp2=tmp1(1:savetstep:end);
 final_m_savestep=size(tmp2,2);
 clear tmp1 tmp1
+t=(0:gpurun_number*final_m_savestep-1)*savetstep*tstep;%TIME-01: elapsed time of each saved frame
 if (SOT_DLT || SOT_FLT) && ~(rk4==1)
     error('only rk4 is implemented for spin torque driven')
 end
