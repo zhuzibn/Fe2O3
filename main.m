@@ -4,9 +4,7 @@ clear all;clc;close all;tic
 %% control parameter
 constantfile;
 clear gam
-rk4=1;%1:rk4,0:heun Method,2:4th predictor-corrector
 DMIenable=1;%enable DMI interaction?
-dipolemode=0;%enable dipole field?
 %% use fixed or randomatom distribution
 load_fixed_atom_distrib=0;%load fixed atom distribution
 save_fixed_atom_distrib=0;%save fixed atom distribution
@@ -40,18 +38,20 @@ a=5.067e-10;
 c=13.882e-10;
 tz=c/6*natomH;
 ms=12*mus/c/a^2/sqrt(3)*2;%[A/m], saturation magnetization
-% Shell-resolved z-DMI magnitudes [J]; shells 1 and 2 are omitted.
+% Shell-resolved z-DMI [J]; J1 is retained at zero, J2 is omitted.
 % D3/D4=1.25 is a Fig.3(b) estimate; absolute values are user-selected.
 if DMIenable
+    Dsim1=0;
     Dsim3=1.6e-23;
     Dsim4=1.28e-23;
 else
+    Dsim1=0;
     Dsim3=0;
     Dsim4=0;
 end
 alp=0.001;%Gilbert damping
 %% electrical parameters
-jcSOT=6e12;%[A/m2]
+jcSOT=0e12;%[A/m2]
 jcSTT=0e9;%[A/m2]
 Hext=[0,0,0];%
 %% SOT parameters
@@ -89,7 +89,7 @@ BDSTTRE=STT_DLT*hbar/2*etaSTT*jcSTT/(ms*tz);%[T]
 BDSTTTM=STT_DLT*hbar/2*etaSTT*jcSTT/(ms*tz);
 %% time control
 gpusave=1e-12;%how often saving gpu data
-gpurun_number=150;%run time /ps                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ;
+gpurun_number=25;%run time /ps                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ;
 tstep=1e-16;%one step is 0.1fs
 savetstep=5000;%save data every ~ loops
 gpusteps=round(gpusave/tstep);
@@ -102,18 +102,9 @@ tmp2=tmp1(1:savetstep:end);
 final_m_savestep=size(tmp2,2);
 clear tmp1 tmp1
 t=(0:gpurun_number*final_m_savestep-1)*savetstep*tstep;%TIME-01: elapsed time of each saved frame
-if (SOT_DLT || SOT_FLT) && ~(rk4==1)
-    error('only rk4 is implemented for spin torque driven')
-end
 %% dynamic calc
 integrate_llg(); toc
 %% save data
-clear hdipolex1 hdipoley1 hdipolez1  
-clear hdipolex2 hdipoley2 hdipolez2  
-clear hdipolex3 hdipoley3 hdipolez3  
-clear hdipolex4 hdipoley4 hdipolez4  
-clear hdipolex5 hdipoley5 hdipolez5  
-clear hdipolex6 hdipoley6 hdipolez6  
 clear mmx_l1 mmy_l1 mmz_l1
 clear mmx_r1 mmy_r1 mmz_r1
 clear mmx_l2 mmy_l2 mmz_l2
@@ -134,4 +125,4 @@ clear mmx_u1r1 mmy_u1r1 mmz_u1r1
 clear atomtype_layer1or atomtype_layer1gr atomtype_layer2blue
 clear mmxtmp mmytmp mmztmp
 clear hdmi_x hdmi_y hdmi_z
-save('final.mat')
+save('Relax.mat')
