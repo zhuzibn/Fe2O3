@@ -114,7 +114,26 @@ dmi_sumz=dmi_sumz.*atomtype_;
 hdmi_x=dmi_sumy./muigpu;
 hdmi_y=-dmi_sumx./muigpu;
 hdmi_z=zeros(size(hex_x),'like',hex_x);
+%% dipole
+if dipolemode
+    if dipole_refresh
+        hdipolex1=zeros(size(mmxtmp),'like',mmxtmp);
+        hdipolex2=hdipolex1;hdipolex3=hdipolex1;
+        hdipolex4=hdipolex1;hdipolex5=hdipolex1;hdipolex6=hdipolex1;
+        hdipoley1=hdipolex1;hdipoley2=hdipolex1;hdipoley3=hdipolex1;
+        hdipoley4=hdipolex1;hdipoley5=hdipolex1;hdipoley6=hdipolex1;
+        hdipolez1=hdipolex1;hdipolez2=hdipolex1;hdipolez3=hdipolex1;
+        hdipolez4=hdipolex1;hdipolez5=hdipolex1;hdipolez6=hdipolex1;
+        dipole_();
+        hdipo_x=hdipo_x.*atomtype_;
+        hdipo_y=hdipo_y.*atomtype_;
+        hdipo_z=hdipo_z.*atomtype_;
+        dipole_refresh=false;
+    end
+else
+    hdipo_x=0;hdipo_y=0;hdipo_z=0;
+end
 %% Total Heff
-hhx=(hex_x+hani_x+hdmi_x+Hext(1)).*atomtype_;
-hhy=(hex_y+hani_y+hdmi_y+Hext(2)).*atomtype_;
-hhz=(hex_z+hani_z+hdmi_z+Hext(3)).*atomtype_;
+hhx=(hex_x+hani_x+hdmi_x+Hext(1)+hdipo_x).*atomtype_;
+hhy=(hex_y+hani_y+hdmi_y+Hext(2)+hdipo_y).*atomtype_;
+hhz=(hex_z+hani_z+hdmi_z+Hext(3)+hdipo_z).*atomtype_;

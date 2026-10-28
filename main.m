@@ -4,7 +4,9 @@ clear all;clc;close all;tic
 %% control parameter
 constantfile;
 clear gam
+rk4=1;%1:RK4 (default), 0:Heun, 2:four-step predictor-corrector
 DMIenable=1;%enable DMI interaction?
+dipolemode=0;%Optional dipole field
 %% use fixed or randomatom distribution
 load_fixed_atom_distrib=0;%load fixed atom distribution
 save_fixed_atom_distrib=0;%save fixed atom distribution
@@ -105,6 +107,10 @@ t=(0:gpurun_number*final_m_savestep-1)*savetstep*tstep;%TIME-01: elapsed time of
 %% dynamic calc
 integrate_llg(); toc
 %% save data
+clear hdipo_x hdipo_y hdipo_z
+clear hdipolex1 hdipolex2 hdipolex3 hdipolex4 hdipolex5 hdipolex6
+clear hdipoley1 hdipoley2 hdipoley3 hdipoley4 hdipoley5 hdipoley6
+clear hdipolez1 hdipolez2 hdipolez3 hdipolez4 hdipolez5 hdipolez6
 clear mmx_l1 mmy_l1 mmz_l1
 clear mmx_r1 mmy_r1 mmz_r1
 clear mmx_l2 mmy_l2 mmz_l2
