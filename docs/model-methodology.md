@@ -297,7 +297,7 @@ derivation, and the physical axis mapping remain `UNRESOLVED`.
 ### Dzyaloshinskii--Moriya interaction
 
 `exchangej_.m` first computes the stage spin-neighbor sums. Current
-`dmi.m:4–9` weights J1, J3, and J4, with `Dsim1=0` in both branches of
+`dmi.m:11–16` weights J1, J3, and J4, with `Dsim1=0` in both branches of
 `main.m`. Thus the configured operator remains the J3/J4 form introduced
 in PR #18, with weights in joules:
 
@@ -574,7 +574,7 @@ $J_1$--$J_4$ must be resolved before the comment or values are changed.
 | Exchange shells | Site-dependent $J_1$--$J_4$ offset sums; intended bulk multiplicities $1,3,3,6$ | `exchangej_.m`; notebook pp. 2--4, 9--11 | Notebook/code agreement and reciprocity passed the finite-lattice audit above; `UNRESOLVED`: physical shell distances and source mapping |
 | Exchange values | Four values listed above | `main.m`; notebook pp. 2--3 | `UNRESOLVED`: code comment and copied table provenance conflict |
 | Anisotropy | Second-order axial term plus guarded sixth-order field using normalized stage angles | `field_calc.m:83–107` | ANI-01 arithmetic defect resolved; `UNRESOLVED`: sixth-order energy, axis and parameter provenance |
-| DMI | $q_k(D_1S_{J1}+D_3S_{J3}-D_4S_{J4})$ sums, with $D_1=0$; retained PR #18 energy convention $-\mathbf x^T W\mathbf y$ | `dmi.m:4–9`; `main.m:43–53`; `field_calc.m:108–116` | DMI-02 antisymmetry defect resolved on tested J3/J4 operators; nonzero D1 unvalidated; `UNRESOLVED`: physical bonds, shell mapping, and parameter provenance |
+| DMI | $q_k(D_1S_{J1}+D_3S_{J3}-D_4S_{J4})$ sums, with $D_1=0$; retained PR #18 energy convention $-\mathbf x^T W\mathbf y$ | `dmi.m:11–16`; `main.m:43–53`; `field_calc.m:108–116` | DMI-02 antisymmetry defect resolved on tested J3/J4 operators; nonzero D1 unvalidated; `UNRESOLVED`: physical bonds, shell mapping, and parameter provenance |
 | Dipole | Three same-layer neighbors at $0.5067\ \mathrm{nm}$, refreshed every 50 steps | `dipole_.m`; notebook p. 6 | `UNRESOLVED`: truncation justification and source locator missing |
 | LLG/LLGS | Fixed-length LL form in tesla convention | GPU kernels; local equation reference | Focused RK4 precession, damping, and torque checks passed; general convergence unresolved |
 | Boundary | Empty two-cell lateral padding; omitted out-of-range layer bonds | `distrib.m`, `exchangej_.m`, `dmi.m` | Finite-lattice notebook/code agreement audited above; broader coordination and finite-size tests missing |
