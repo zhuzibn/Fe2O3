@@ -133,10 +133,6 @@ atomtype_layer2blue=atomtype_layer1or;
 atomtype_layer3red=atomtype_layer1gr;
 %black in the 3nd layer is identical to purple in 2nd layer
 atomtype_layer3black=atomtype_layer2p;
-ato_s= abs(atomtype_-1);
-% ato_s is just the opposite, this matrix is used to avoid the NaN result
-% in the rk4 calculation. 0=have atom, 1=no atom.
-%%filtr of the totally atomtype
 
 clear startL start2L start3L new_atomtype_layp new_atomtype_layor new_atomtype_laygr new_atomtype_
 clear new_natomW new_natomL
