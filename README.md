@@ -18,6 +18,10 @@ Merged PR #18 (`864d6b0`) subsequently corrected the anisotropy pole division,
 DMI-history alignment, chunk update counts, and saved-time labels, and replaced
 DMI with separate J3/J4 weights and alternating layer signs. See
 [diff.md](diff.md) for current issue status and the historical import decisions.
+Merged PR #20 (`d79ef2a`, reviewed head `cf19a99`) moves field evaluation into
+`field_calc.m`, reevaluates exchange, anisotropy, and DMI at RK4 substages,
+and keeps the evolving spin state on the GPU. It also changes the default
+to a 25 ps zero-current run saved as `Relax.mat`.
 
 ## Requirements
 
@@ -50,8 +54,9 @@ The most important controls are:
 | `natomW`, `natomL`, `natomH` | Unpadded array dimensions | `20, 20, 6` |
 | `tstep` | Integration step in seconds | `1e-16` |
 | `gpusave` | Length of one GPU integration chunk in seconds | `1e-12` |
-| `gpurun_number` | Number of chunks | `150` |
+| `gpurun_number` | Number of chunks | `25` |
 | `savetstep` | Save every Nth in-chunk state | `5000` |
+| `jcSOT`, `jcSTT` | Drive current densities in A/m² | `0, 0` |
 | `load_fixed_atom_distrib` | Load last spin frame from `Relax_0.mat` | `0` |
 
 No thermal field or domain-wall initialization option is implemented in this
@@ -59,17 +64,21 @@ version. The atom distribution is deterministic despite the console message
 referring to a random distribution. The legacy `save_fixed_atom_distrib` flag
 has no save action. `Relax_0.mat` is not supplied; enabling the restart option
 requires a compatible file with `mmx`, `mmy`, and `mmz` histories.
-The predictor-corrector selection currently has an argument mismatch in its
-RK4 bootstrap call and must not be treated as runnable until repaired and
-tested.
+RK4 is the default and has focused verification. Heun and predictor-corrector
+remain legacy, unvalidated alternatives with fixed-field approximations.
+The predictor-corrector bootstrap now shares the first three RK4 updates;
+the former argument mismatch is removed. Nonzero SOT or STT amplitudes are
+rejected unless `rk4=1`; enabled switches with zero current are allowed.
 
-By default, the run writes `final.mat` in the repository root and overwrites
+By default, the run writes `Relax.mat` in the repository root and overwrites
 an existing file with that name without prompting. Use a separate working copy
 or change the output path before running cases whose existing output must be
 preserved. The file is a saved MATLAB workspace, so it contains more than the
 trajectory arrays alone, including `mmx/mmy/mmz`, `t`, and DMI histories
 `hdmi_allx/y/z`. The source cleanup removes the six site-specific masks and
 several temporary arrays before saving.
+The restart input remains `Relax_0.mat`; it does not automatically load the
+newly written `Relax.mat`.
 
 To plot a loaded result, run `One_data_curve`. It uses the spins at array
 indices `(8,4,2)` and `(8,4,3)`, the latter's time trace, and a fixed six-panel
@@ -77,13 +86,13 @@ layout for final y-component maps. It is not called automatically by `main`.
 
 ## Default configuration
 
-The defaults enable DMI and both SOT components, with `jcSOT=6e12 A/m^2`,
-polarization approximately `[-0.866,-0.5,0]`, and field-like/damping-like
-ratio 5. Their field-equivalent amplitudes are approximately 0.1865 T and
-0.9324 T. STT and dipole coupling are disabled. Occupied odd/even layers
+The defaults enable DMI. Both SOT switches remain enabled, with polarization
+approximately `[-0.866,-0.5,0]` and field-like/damping-like ratio 5, but
+`jcSOT=0` makes both torque amplitudes zero. STT and dipole coupling are
+disabled, and `Hext=[0,0,0] T`. Occupied odd/even layers
 start along +x/-x. Anisotropy uses `Ksim1=-8e-22 J` and `hk6=1.76e-27 J`.
-The default run performs 1,500,000 updates, evolving for 150 ps. Its 300 saved
-spin and DMI frames are aligned at `t = 0, 0.5, ..., 149.5 ps`; the 150 ps
+The default run performs 250,000 updates, evolving for 25 ps. Its 50 saved
+spin and DMI frames are aligned at `t = 0, 0.5, ..., 24.5 ps`; the 25 ps
 endpoint is computed but excluded from the saved trajectory.
 
 The lattice generator adds two empty array rows and columns on every lateral
@@ -93,7 +102,7 @@ Only entries selected by `atomtype_` represent magnetic sites.
 **ANI-01** and **OUT-01** are resolved in the merged code. **TIME-01** update
 counts and timestamps are corrected; saving the final-time state remains an
 open output decision. Restarting from the last saved default frame uses the
-state at 149.5 ps. The **DMI-02** antisymmetry defect is resolved for the tested
+state at 24.5 ps. The **DMI-02** antisymmetry defect is resolved for the tested
 finite lattices, while physical bond assignments and parameter provenance
 remain unresolved. See [the issue record](diff.md) for evidence and scope.
 
@@ -105,13 +114,14 @@ remain unresolved. See [the issue record](diff.md) for evidence and scope.
 | `constantfile.m` | Physical constants used by the scripts |
 | `systemgeneration.m` | Alternating initial spin state or optional restart |
 | `distrib.m` | Occupancy and layer/site masks plus lateral padding |
-| `integrate_llg.m` | Neighbor shifts, effective fields, GPU loop, and sampling |
+| `integrate_llg.m` | GPU state, RK4 stages, legacy solver dispatch, normalization, and sampling |
+| `field_calc.m` | Neighbor shifts, exchange/anisotropy/DMI fields, cached dipole field, and total field |
 | `exchangej_.m` | Site-dependent $J_1$--$J_4$ neighbor sums |
-| `dmi.m` | J3/J4 DMI weights with alternating target-layer signs |
+| `dmi.m` | Alternating layer signs for J1/J3/J4 DMI sums; J1 weight is zero in `main.m` |
 | `dipole_.m` | Truncated nearest-neighbor in-plane dipole field |
-| `atomgpurk4.m` | Fixed-field RK4 update with SOT/STT-labeled torques |
+| `atomgpurk4.m` | LLGS derivative with SOT/STT-labeled torques; stages are assembled by `integrate_llg.m` |
 | `atomgpu.m` | Fixed-field Heun update without torque arguments |
-| `atomgpupc4.m` | Fixed-field fourth-order predictor-corrector update |
+| `atomgpupc4.m` | Legacy fixed-field predictor-corrector update; order unvalidated |
 | `One_data_curve.m` | Manual plots of selected spins and final layer maps |
 | `Readme.txt` | Original source-folder file descriptions |
 | `diff.md` | Current issue status, historical import decisions, and verification record |
@@ -135,7 +145,8 @@ MATLAB masks, exchange topology,
 shift-variable names, source excerpts, and the merged J3/J4 DMI operator.
 Select **DMI** and either actual layer index for each color to see the
 alternating signs, `Dsim3=1.6e-23 J` and `Dsim4=1.28e-23 J` weights, and
-surface/edge omissions. DMI on J1/J2 is absent. Selecting a neighbor traces
+surface/edge omissions. J1 has zero configured DMI weight; J2 DMI is absent.
+Selecting a neighbor traces
 its shift through `exchangej_.m` and its weight in `dmi.m`.
 DMI labels show algebraic weights rather than physical bond-vector arrows;
 physical shell assignments and parameter provenance remain unresolved.
@@ -178,9 +189,17 @@ change first.
 A separate [PR #18 / TIME-01 change report](docs/pr18-time-01-change-report.html)
 compares `4ba0e42` with `77dece1`, including checked timing behavior and the
 remaining final-state output question. That reviewed MATLAB source is now
-merged in this checkout. The report retains its original pre-merge context;
-[current verification status](docs/model-methodology.md#merged-pr-18-verification)
+superseded in part by PR #20. The report retains its original pre-merge context;
+[historical verification status](docs/model-methodology.md#merged-pr-18-verification)
 summarizes which checks support the resolved issues.
+
+A separate [PR #20 change report](docs/pr20-change-report.html) compares
+`7392314` with the review snapshot `cf19a99`, now merged at `d79ef2a`.
+It shows all six changed files, explains the default-run and solver changes, and embeds the focused
+RK4 checks and the cached-dipole limitation. Its MATLAB source matches this
+checkout; the report retains its original pre-merge wording. See
+[PR #20 verification scope](docs/model-methodology.md#merged-pr-20-verification)
+for the recorded results and remaining solver limitations.
 
 Focused import checks are recorded in the methodology; there is no accepted
 production benchmark or maintained automated test suite. Before using results

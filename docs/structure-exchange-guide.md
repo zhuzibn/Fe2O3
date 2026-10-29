@@ -2,8 +2,9 @@
 
 This guide follows the current checked-in `distrib.m`, `exchangej_.m`, and
 `dmi.m`. Notebook pages 10–11 provide the historical exchange sketches;
-page 8 records the historical J3/J4 DMI idea. The merged PR #18 code now
-reuses those two neighbor sums with separate weights and alternating layer signs.
+page 8 records the historical J3/J4 DMI idea. PR #20 (`d79ef2a`) retains the
+PR #18 J3/J4 weights and alternating layer signs, adds a zero J1 DMI weight,
+and moves shifts and field assembly into `field_calc.m`.
 This documentation does not change the Class 4, fixed-length LLG/LLGS model
 or establish its physical crystallography, shell assignments, or parameters.
 
@@ -115,7 +116,7 @@ shifted = circshift(spins,[dr,dc]);
 
 Thus `circshift(...,[0,+1])` gathers the column-`c-1` neighbor. The suffix
 encodes the **array shift**, not the neighbor displacement. Definitions live
-in `integrate_llg.m:95–133`.
+in `field_calc.m:22–60`.
 
 ## 4. Complete neighbor reference
 
@@ -288,11 +289,12 @@ unchanged. `unit-cell.js` is documentation graphics only.
 
 ## 8. DMI links in the explorer
 
-Select **DMI** to inspect the J3/J4 neighbors reused by `dmi.m` at merged
-PR #18 (`864d6b0`). Blue links show J3; brown links show J4. Atom colors still
+Select **DMI** to inspect the configured J3/J4 neighbors reused by current
+`dmi.m`. Blue links show J3; brown links show J4. Atom colors still
 identify the six site masks. Labels show the signed energy weight of each
 read, not a reconstructed physical DMI vector. The former `nex`/`pre` sums
-and unshifted J1 reads are absent from the current code.
+are absent. Current code includes `Dsim1*S_J1`, but `Dsim1=0` in both
+branches of `main.m`; the view depicts that zero-J1 configuration only.
 
 Using the offset symbols in section 4, the reused sums are:
 
@@ -311,9 +313,10 @@ The sign is determined by the **actual target layer**, not its motif label:
 green/orange occupy layers 1 and 4, blue/purple 2 and 5, red/black 3 and 6.
 The explorer exposes both occurrences, including the two interior choices
 for blue/purple. Increasing array layer index still points opposite to
-physical $z$, as documented in `dmi.m`.
+physical $z$, as recorded in the historical PR #18 `dmi.m` comments.
 
-An interior target has nine reads (three J3, six J4). DMI on J1/J2 is omitted;
+An interior target has nine nonzero-weight reads (three J3, six J4).
+J1 has zero DMI weight and J2 is absent;
 their exchange contributions remain unchanged. The same surface guards and
 lateral padding as exchange supply the omissions. Away from lateral edges,
 first-layer green and last-layer red retain six DMI neighbors; first-layer
@@ -321,27 +324,27 @@ orange and last-layer black retain three. Interior targets retain nine.
 The explorer uses a small `9 × 17 × 6` core for teaching the index rules;
 `main.m` defaults to `20 × 20 × 6`, padded to `24 × 24 × 6`.
 
-`dmi.m:16–21` constructs energy-weighted sums from the current-state exchange
-sums, without a uniform-sublattice approximation:
+`dmi.m:4–9` constructs energy-weighted sums from the current stage's exchange
+sums, without a uniform-sublattice approximation. With configured `Dsim1=0`:
 
 $$
 \mathbf S_{D,i}=q_{k_i}(D_3\mathbf S_{J3,i}-D_4\mathbf S_{J4,i}).
 $$
 
-`integrate_llg.m:174–182` masks these sums and assembles the flux density:
+`field_calc.m:108–116` masks these sums and assembles the flux density:
 
 $$
 \mathbf B_{D,i}=(S_{D,i,y},-S_{D,i,x},0)/\mu_s.
 $$
 
 With $A_3,A_4$ denoting the implemented neighbor matrices on occupied sites,
-the code comments specify $W=\operatorname{diag}(q_k)(D_3A_3-D_4A_4)$ and
+the PR #18 comments specified $W=\operatorname{diag}(q_k)(D_3A_3-D_4A_4)$ and
 $E_D=-\mathbf x^T W\mathbf y$, where $\mathbf x,\mathbf y$ contain the spin
 components. $W$ and $\mathbf S_D$ are in joules, $\mu_s$ in J/T, and
 $\mathbf B_D$ in tesla. This transcribes the accepted implementation; it
 does not establish its material-specific physical interpretation.
 
-`main.m:43–51` sets `Dsim3=1.6e-23 J`, `Dsim4=1.28e-23 J`, or both zero
+`main.m:43–53` sets `Dsim3=1.6e-23 J`, `Dsim4=1.28e-23 J`, or both zero
 when disabled. The explorer shows the enabled defaults and each signed weight.
 The source labels the absolute values user-selected and the ratio 1.25 a
 Fig. 3(b) estimate. That comment's publication locator and estimate are not
@@ -361,7 +364,31 @@ of the z-only approximation remain **UNRESOLVED**. Notebook page 8 is still a
 historical comparison and supplies no independent evidence for the current
 signs or magnitudes. See [model methodology](model-methodology.md#dzyaloshinskii--moriya-interaction).
 
+### Source synchronization (2026-10-29)
+
+The explorer's complete `dmi.m` and `exchangej_.m` snapshots and its
+parameter/field excerpts now match PR #20 (`d79ef2a`) after CRLF/LF
+normalization. Source locations point to `field_calc.m` for shifts and
+field assembly. The configured J3/J4 weights, all six site masks, neighbor
+tables, and boundary selections are unchanged; the added J1 weight is zero.
+The October 22 numerical checks below remain historical and were not rerun
+for this documentation-only synchronization. See the
+[PR #20 verification scope](model-methodology.md#merged-pr-20-verification).
+
+This refresh passed source-string comparisons, `node --check
+docs/structure-exchange.js`, and `git -c core.whitespace=cr-at-eol diff
+--check` (preserving `diff.md`'s CRLF endings). Chromium exercised all 240
+color/layer/interaction/edge/padding combinations and 1,056 neighbor
+selections, checking source highlights, active-neighbor colors, and DMI
+signs. No console errors or warnings were reported. Desktop and narrow
+screenshots were inspected; the measured 1297- and 502-pixel viewports had
+no horizontal page overflow. This is documentation/UI verification, not a
+new MATLAB topology or dynamics test.
+
 ### Current DMI visualization check (2026-10-22)
+
+Historical check at PR #18: the field assembly then lived in
+`integrate_llg.m`. Its original commands and results are retained below.
 
 The displayed tables were exported from `structure-exchange.js` and compared
 against basis probes through the actual `distrib.m`, shift definitions,

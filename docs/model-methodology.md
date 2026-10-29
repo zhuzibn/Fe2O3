@@ -21,6 +21,12 @@ shell weights that pass the tested antisymmetry checks. The final-time state
 is still excluded from the saved trajectory. See
 [merged PR verification](#merged-pr-18-verification) for resolution evidence
 and [import verification](#import-verification) for the historical defects.
+Merged PR #20 (`d79ef2a`, reviewed head `cf19a99`) separates field evaluation
+into `field_calc.m`, moves the RK4 stages into `integrate_llg.m`, and keeps
+the evolving state on the GPU. Exchange, anisotropy, and DMI are reevaluated
+at each RK4 substage; dipoles remain cached. The default is now a 25 ps,
+zero-current run saved as `Relax.mat`. See
+[PR #20 verification](#merged-pr-20-verification) for the checked scope.
 
 Evidence labels used below are:
 
@@ -50,8 +56,9 @@ spin model** for $\alpha$-Fe$_2$O$_3$.
 
 - Each occupied array site carries a classical normalized spin
   $\mathbf{s}_i=(s_{ix},s_{iy},s_{iz})$.
-- The equation family is fixed-length LLG/LLGS. Every implemented integrator
-  explicitly renormalizes the updated spin.
+- The equation family is fixed-length LLG/LLGS. `integrate_llg.m`
+  explicitly renormalizes every completed update; the RK4 derivative kernel
+  does not normalize intermediate stage spins.
 - The magnetic order is represented through the occupied-site pattern and
   alternating initial spin directions, rather than through two coherent
   macrospins.
@@ -79,15 +86,12 @@ border on every side.
 
 An occupancy mask `atomtype_` uses `1` for an occupied magnetic site and `0`
 for an empty array entry. Component arrays are multiplied by this mask before
-neighbor fields are constructed. The complementary mask
-
-$$
-\texttt{ato\_s}=|\texttt{atomtype\_}-1|
-$$
-
-sets all three components of an empty entry to one only while the scalar GPU
-integrator is evaluated. This avoids division by zero during normalization;
-the empty entries are masked out again afterward.
+neighbor fields are constructed. RK4 leaves empty entries at zero. For Heun
+and predictor-corrector only, `legacy_empty=1-atomtype_` sets all three
+components of empty entries to one during scalar-kernel evaluation, avoiding
+their internal normalization singularity. The integrator masks the outputs,
+rejects nonfinite or zero occupied-spin norms, and normalizes with a guarded
+denominator so empty entries remain zero. The old `ato_s` mask is removed.
 
 ### Three-layer motif and site masks
 
@@ -134,7 +138,7 @@ dimensions and masks is performed. The default is zero. The remaining
 ## Geometry and boundary behavior
 
 The implementation uses array shifts rather than an explicit bond table.
-`integrate_llg.m` constructs ten lateral shifted copies of each spin component
+`field_calc.m` constructs ten lateral shifted copies of each spin component
 using `circshift` with offsets
 
 $$
@@ -250,18 +254,20 @@ $$
 =-\frac{1}{\mu_s}\sum_{n=1}^{4}J_n\mathbf{S}_{n,i}.
 $$
 
-This is implemented component by component in `integrate_llg.m`. No extra
+This is implemented component by component in `field_calc.m`. No extra
 factor of $1/2$ appears in the field. Pair reciprocity passed the finite-lattice
 notebook comparison described above. Energy/field finite-difference agreement
 has not yet been tested.
 
 ### Anisotropy
 
-The current anisotropy block is `integrate_llg.m:159–173`. It retains the
-imported numerators with the ANI-01 denominator guard added in `3e20e90`.
-Define $q=\sin(\arccos s_z)$ and $\bar q=q+\mathbf{1}_{q=0}$, where the
-indicator is one only when the computed $q$ is zero. With
-$u=s_x/\bar q$, $v=s_y/\bar q$, the sixth-order numerators are
+The current anisotropy block is `field_calc.m:83–107`. For a possibly
+nonunit RK4 stage spin, define $r=|\mathbf s|$,
+$\widehat{\mathbf s}=\mathbf s/(r+\mathbf{1}_{r=0})$,
+$q=\operatorname{hypot}(\widehat s_x,\widehat s_y)$, and
+$\bar q=q+\mathbf{1}_{q=0}$. The indicator is one only when its condition
+is true. With $u=\widehat s_x/\bar q$, $v=\widehat s_y/\bar q$, the
+sixth-order numerators are
 
 $$
 A_x=12h_6q^5uv^2(2v+1)(2v-1)(-3+4v^2),\quad
@@ -269,15 +275,20 @@ A_y=-12h_6q^5u^2v(2v+1)(2v-1)(-3+4v^2),
 $$
 
 $$
-A_z=-6h_6s_zq^4(-1+2u^2)(16u^4-16u^2+1).
+A_z=-6h_6\widehat s_zq^4(-1+2u^2)(16u^4-16u^2+1).
 $$
 
-The code multiplies these by `mask=~(abs(mz)==1)` and divides by `mus`,
-then adds $2K_1s_z/\mu_s$ to z. The guarded division avoids the former +z
-`0/0`, and the mask removes the sixth-order contribution at both exact poles.
+The code multiplies these by `(sintheta~=0) & (atomtype_~=0)` and divides
+by `mus`, then adds $2K_1s_z/\mu_s$ to z using the unnormalized stage
+component. Normalization is local to the sixth-order angular calculation;
+it does not replace the stage spin used by exchange, DMI, or the LLGS RHS.
+Guarded divisions and the mask remove the sixth-order contribution at both
+exact poles and empty entries without evaluating `acos` on a nonunit spin.
 Thus the pole fields are finite: $(0,0,2K_1s_z/\mu_s)$ for $s_z=\pm1$.
-**ANI-01 is resolved** as an arithmetic defect; the off-pole formula is
-unchanged. These expressions transcribe the code, not a new energy derivation.
+**ANI-01 is resolved** as an arithmetic defect. PR #20 replaces the old
+`sin(acos(s_z))` angular construction with the normalized-component form
+above; the earlier bitwise off-pole comparison applies to PR #18 only.
+These expressions transcribe the code, not a new energy derivation.
 
 The second-order term uses `Ksim1=-8e-22 J`, and the sixth-order coefficient
 is `hk6=1.76e-27 J`. Their material provenance, the sixth-order energy
@@ -285,8 +296,10 @@ derivation, and the physical axis mapping remain `UNRESOLVED`.
 
 ### Dzyaloshinskii--Moriya interaction
 
-**Implemented at merged PR #18.** `exchangej_.m` first computes the current
-J3/J4 spin-neighbor sums. `dmi.m:16–21` reuses them with weights in joules:
+`exchangej_.m` first computes the stage spin-neighbor sums. Current
+`dmi.m:4–9` weights J1, J3, and J4, with `Dsim1=0` in both branches of
+`main.m`. Thus the configured operator remains the J3/J4 form introduced
+in PR #18, with weights in joules:
 
 $$
 q_k=1-2\operatorname{mod}(k,2)=(-1)^k,\qquad
@@ -295,19 +308,22 @@ $$
 
 The actual layer index $k$ determines the sign, not the three-layer motif
 label or target color. The same color at $k+3$ has the opposite sign.
-Array layer index increases opposite to physical $z$, as recorded in the
-code comments. Surface and lateral-edge omissions are inherited from the
+The historical PR #18 comments record array layer index increasing opposite
+to physical $z$; the current shortened `dmi.m` omits that explanation.
+Surface and lateral-edge omissions are inherited from the
 exchange sums. There are three J3 and six J4 neighbors per interior target;
-there is no J1/J2 DMI or unshifted adjacent-layer read. No uniform-sublattice
+J1 contributes zero with the configured weight, and J2 is absent. A nonzero
+J1 weight has no validation recorded here. No uniform-sublattice
 approximation replaces individual neighboring spins.
 
-`integrate_llg.m:174–182` masks the sums and forms the field in tesla:
+`field_calc.m:108–116` masks the sums and forms the field in tesla:
 
 $$
 \mathbf B_{D,i}=(S_{D,i,y},-S_{D,i,x},0)/\mu_s.
 $$
 
-The code comments specify
+The PR #18 code comments specified the following convention, retained here
+for the configured `Dsim1=0` operator:
 
 $$
 W=\operatorname{diag}(q_k)(D_3A_3-D_4A_4),\qquad
@@ -319,7 +335,7 @@ $\mathbf x,\mathbf y$ are the spin-component vectors. This is a transcription
 of the accepted code's energy/field convention, not a new physical bond-vector
 assignment or a literature validation.
 
-`main.m:43–51` sets `Dsim3=1.6e-23 J` and `Dsim4=1.28e-23 J` when enabled,
+`main.m:43–53` sets `Dsim3=1.6e-23 J` and `Dsim4=1.28e-23 J` when enabled,
 and both zero when disabled. Its comments describe the absolute values as
 user-selected and their ratio 1.25 as a Fig. 3(b) estimate. The exact
 publication locator and estimate have not been verified in this update;
@@ -365,8 +381,12 @@ $$
 
 This is a nearest-neighbor in-plane truncation, not a full long-range dipolar
 sum. Interlayer dipole terms and more distant lateral sites are omitted. The
-field is recomputed every 50 integration steps and held at its previous value
-between updates when enabled. The imported default is `dipolemode=0`.
+field is refreshed at `ct1=1,51,101,...` within each chunk and held fixed
+between refreshes, including all RK4 substages. `field_calc.m` consumes
+`dipole_refresh` on its first call in that step. The schedule restarts each
+chunk, so it is a uniform 50-step interval only when chunk lengths align
+accordingly. The default is `dipolemode=0`. The enabled path is therefore
+not a fully coupled RK4 evaluation of the dipole field.
 
 ### External field and total field
 
@@ -436,66 +456,71 @@ conversion implicit in the usual SI expression is canceled numerically. This
 unit interpretation should be checked explicitly before nonzero-current
 results are used.
 
-The default SOT current is `6e12 A/m^2`, with both components enabled and
-polarization approximately `[-0.866,-0.5,0]`. With
-`ms=24*mus/(sqrt(3)*a^2*c)` and `tz=c*natomH/6`, the amplitudes are
-`BDSOT=0.18648 T` and `BFSOT=5*BDSOT=0.93239 T`. STT is disabled and its
-current is zero. The inherited `BFSTT=chi*BDSTT` uses the SOT ratio rather
+The default SOT current is zero, although both SOT switches remain enabled
+with polarization approximately `[-0.866,-0.5,0]` and `chi=5`.
+Consequently `BDSOT=BFSOT=0 T`. STT is disabled and its current is also zero.
+The amplitudes include the respective DLT switch; disabling it also zeros
+the corresponding FLT amplitude. The inherited `BFSTT=chi*BDSTT` uses the SOT ratio rather
 than `chiSTT`; this nondefault-path limitation is retained, not repaired.
 
 ## Numerical integration
 
-Three update kernels are selectable:
+`integrate_llg.m` accepts scalar `rk4` values 0, 1, or 2 and raises
+`Fe2O3:InvalidSolver` otherwise. The selectable paths are:
 
 | `rk4` | Kernel | Implemented behavior |
 |---:|---|---|
-| `1` | `atomgpurk4.m` | Four-stage RK4 update; includes the SOT/STT-labeled torque arguments |
-| `0` | `atomgpu.m` | Two-stage Heun update; no torque arguments |
-| `2` | `atomgpupc4.m` | Four-step Adams--Bashforth predictor and Adams--Moulton corrector; no torque arguments |
+| `1` | `atomgpurk4.m` | Default; returns the LLGS derivative including SOT/STT. The caller assembles four RK4 stages and reevaluates exchange, anisotropy, and DMI at each stage. Focused verification is recorded below. |
+| `0` | `atomgpu.m` | Legacy two-stage Heun update with fixed input fields and no torque arguments; not validated by the PR #20 checks. |
+| `2` | `atomgpupc4.m` | Legacy four-step predictor-corrector with fixed input fields and no torque arguments; not validated by the PR #20 checks. |
 
-The predictor-corrector selection attempts to bootstrap its first three steps
-with `atomgpurk4.m`, but the call in `integrate_llg.m` supplies only the
-field-only argument list while `atomgpurk4.m` requires the longer torque-aware
-signature. The selected `rk4=2` path is therefore expected to fail before it
-reaches `atomgpupc4.m`; it has not been executed in this documentation pass.
+Predictor-corrector bootstraps its first three updates through the same RK4
+branch and torque-aware signature as `rk4=1`. Its three prior spin states
+and history count persist across chunks. The former signature mismatch is
+removed, but this does not establish correctness or fourth-order convergence
+of the full legacy path. Its unchanged predictor uses weights
+`55,-59,37,-3`, and historical/predicted damping evaluations reuse the current
+spin in their outer cross product; these formulas still require validation.
 
-Each update kernel normalizes the final spin to unit length. The effective field
-is evaluated once before the scalar kernel call and is held fixed during the
-RK4/Heun substages or predictor-corrector evaluations. Consequently, `rk4=1`
-is not a fully coupled RK4 evaluation of a state-dependent effective field.
+RK4 evaluates `field_calc.m` at the initial, two midpoint, and endpoint
+stage states. It combines the four derivatives, then masks and normalizes
+the result. Nonfinite or zero occupied-spin norms raise
+`Fe2O3:InvalidSpin`. Heun/PC4 additionally normalize inside their kernels;
+their fixed-field evaluations and the shared dipole cache remain limitations.
 
-The current guard rejects non-RK4 integration only when an SOT switch is set.
-It does not guard nonzero STT. Choosing Heun or predictor-corrector with a
-nonzero STT amplitude therefore omits that torque silently. This is a known
-implementation limitation.
+For `rk4~=1`, any nonzero amplitude in
+`[BDSOTRE,chi*BDSOTRE,BDSTTRE,chi*BDSTTRE]` raises
+`Fe2O3:UnsupportedTorque`. Thus both SOT and STT are guarded, while enabled
+switches with zero current no longer prevent a legacy solver selection.
 
-The trajectory is processed in GPU chunks. Each kernel result is explicitly
-gathered into CPU trajectory buffers. Every `savetstep`-th in-chunk state is
-copied to `mmx_`, `mmy_`, and `mmz_`; after the loop these are masked and
-renamed `mmx`, `mmy`, and `mmz`.
+The current spin components stay on the GPU between updates and across
+chunks. Only sampled spin/DMI frames are gathered into CPU histories
+(`mmx_`, `mmy_`, `mmz_`, `hdmi_allx/y/z`); the norm check also gathers a
+scalar validity flag each step. Full in-chunk trajectory buffers are no
+longer allocated. The output histories are masked and the spin histories
+renamed `mmx`, `mmy`, and `mmz` after integration.
 
 **TIME-01 timing corrected (`ab7d82e`):** `while ct1<gpusteps+1` performs
-`gpusteps` updates per chunk. Frame 1 holds the chunk's initial state, and
-the last update grows the spin buffer to slot `gpusteps+1`, which supplies
-the next chunk's initial state. At the defaults, 150 × 10,000 updates at
-`1e-16 s` evolve for 150 ps. Both spin and DMI histories use
-`1:savetstep:gpusteps`, and `main.m:104` labels the saved frames with
+`gpusteps` updates per chunk. The current sampling rule is
+`mod(ct1-1,savetstep)==0`, before the update. At the defaults,
+25 × 10,000 updates at `1e-16 s` evolve for 25 ps. `main.m` labels frames with
 `t=(0:gpurun_number*final_m_savestep-1)*savetstep*tstep`. For the checked
 integral chunk/step ratios, labels match elapsed time and start at zero.
 
 **Final endpoint still unsaved:** sampling includes each chunk's start and
-excludes its end. The default 300 frames therefore cover
-`0, 0.5, ..., 149.5 ps`. The computed 150 ps endpoint is cleared before
-`final.mat` is written; a restart from the last saved frame uses 149.5 ps.
+excludes its end. The default 50 frames therefore cover
+`0, 0.5, ..., 24.5 ps`. The computed 25 ps endpoint is cleared before
+`Relax.mat` is written; a restart from the last saved frame uses 24.5 ps.
 Whether to save the endpoint with a matching timestamp and DMI field remains
-an open output decision. Non-integral `gpusave/tstep` behavior and the memory
-cost of dynamically growing the extra slot have not been validated.
+an open output decision. Non-integral `gpusave/tstep` behavior has not been
+validated; `gpusteps` is rounded while `runtime` retains the requested chunk
+duration. The removed full-chunk buffer no longer grows an extra slot.
 
-**OUT-01 resolved (`71db4fd`):** fields evaluated from state `ct1` are now
-recorded at `ct1`, while its updated spin is stored at `ct1+1`. Field slot 1
-is populated, and every saved field is paired with its evaluation state.
-The small GPU checks recomputed each DMI field from its saved spin frame
-with zero difference. This recording fix is separate from the initial
+**OUT-01 resolved (`71db4fd`):** current code saves each pre-update spin and
+the first field evaluation at the same `sample_index`, before later RK4
+stages overwrite the field workspace. The PR #18 small GPU checks recomputed
+each saved DMI field with zero difference; those historical results are not
+a new end-to-end output test of PR #20. The recording fix is separate from the initial
 import's DMI current-state correction and the later DMI operator change.
 
 ## Initial conditions
@@ -525,6 +550,7 @@ here using the exact SI electron volt and are not separate inputs.
 | $J_4$ | $2.8041\times10^{-21}\ \mathrm{J}$ | $17.5018\ \mathrm{meV}$ | Implemented; provenance conflict |
 | $K_1$ | $-8\times10^{-22}\ \mathrm{J}$ | $-4.9932\ \mathrm{meV}$ | Imported; source locator unresolved |
 | `hk6` | $1.76\times10^{-27}\ \mathrm{J}$ | $0.000010985\ \mathrm{meV}$ | Imported; energy mapping and source locator unresolved |
+| $D_1$ | `0` | `Dsim1`; retained J1 weight is zero whether DMI is enabled or disabled | PR #20; nonzero weight unvalidated |
 | $D_3$ | $1.6\times10^{-23}\ \mathrm{J}$ | `Dsim3`; J3 neighbor weights | PR #18; absolute value user-selected according to code; physical provenance unresolved |
 | $D_4$ | $1.28\times10^{-23}\ \mathrm{J}$ | `Dsim4`; $D_3/D_4=1.25$ | PR #18; Fig. 3(b) estimate cited in code not independently verified |
 | $g$ | $2$ | $\gamma\approx1.7590\times10^{11}\ \mathrm{rad\,s^{-1}\,T^{-1}}$ | Implemented |
@@ -547,8 +573,8 @@ $J_1$--$J_4$ must be resolved before the comment or values are changed.
 | Hematite crystal/site motif | Three-layer repeating occupancy and six color-labeled site masks | `distrib.m`; notebook pp. 1, 7--11 | Page-10 diagram/implementation agreement verified for a $3\times13\times3$ core; `UNRESOLVED`: no lattice-vector/basis table with exact paper locator |
 | Exchange shells | Site-dependent $J_1$--$J_4$ offset sums; intended bulk multiplicities $1,3,3,6$ | `exchangej_.m`; notebook pp. 2--4, 9--11 | Notebook/code agreement and reciprocity passed the finite-lattice audit above; `UNRESOLVED`: physical shell distances and source mapping |
 | Exchange values | Four values listed above | `main.m`; notebook pp. 2--3 | `UNRESOLVED`: code comment and copied table provenance conflict |
-| Anisotropy | Second-order axial term plus guarded sixth-order field | `integrate_llg.m:159–173` | ANI-01 arithmetic defect resolved; `UNRESOLVED`: sixth-order energy, axis and parameter provenance |
-| DMI | $q_k(D_3S_{J3}-D_4S_{J4})$ sums; code energy $-\mathbf x^T W\mathbf y$ | `dmi.m:1–22`; `main.m:43–51`; `integrate_llg.m:174–182` | DMI-02 antisymmetry defect resolved on tested lattices; `UNRESOLVED`: physical bonds, shell mapping, and parameter provenance |
+| Anisotropy | Second-order axial term plus guarded sixth-order field using normalized stage angles | `field_calc.m:83–107` | ANI-01 arithmetic defect resolved; `UNRESOLVED`: sixth-order energy, axis and parameter provenance |
+| DMI | $q_k(D_1S_{J1}+D_3S_{J3}-D_4S_{J4})$ sums, with $D_1=0$; retained PR #18 energy convention $-\mathbf x^T W\mathbf y$ | `dmi.m:4–9`; `main.m:43–53`; `field_calc.m:108–116` | DMI-02 antisymmetry defect resolved on tested J3/J4 operators; nonzero D1 unvalidated; `UNRESOLVED`: physical bonds, shell mapping, and parameter provenance |
 | Dipole | Three same-layer neighbors at $0.5067\ \mathrm{nm}$, refreshed every 50 steps | `dipole_.m`; notebook p. 6 | `UNRESOLVED`: truncation justification and source locator missing |
 | LLG/LLGS | Fixed-length LL form in tesla convention | GPU kernels; local equation reference | Focused RK4 precession, damping, and torque checks passed; general convergence unresolved |
 | Boundary | Empty two-cell lateral padding; omitted out-of-range layer bonds | `distrib.m`, `exchangej_.m`, `dmi.m` | Finite-lattice notebook/code agreement audited above; broader coordination and finite-size tests missing |
@@ -574,9 +600,10 @@ in order:
    differences of a declared energy where applicable.
 4. **Dynamics:** verify precession direction, damping direction, torque signs,
    unit-spin preservation, and finite values on one- and few-spin problems.
-5. **Integrator:** recompute state-dependent fields at substages or explicitly
-   validate the present fixed-field approximation; then perform timestep
-   convergence for each supported solver.
+5. **Integrator:** extend the focused RK4 substage and isolated-anisotropy
+   checks to coupled-field timestep convergence; separately validate the
+   legacy Heun/PC4 formulas and fixed-field approximations, and quantify the
+   enabled dipole cache error.
 6. **Boundaries:** compare the implicit padded-open behavior with an explicit
    neighbor table and test edge coordination and DMI truncation.
 7. **Simulation outputs:** verify chunk-boundary time alignment, sampling,
@@ -608,19 +635,67 @@ table.
   $z$-only DMI approximation still need to be established.
 - Dipole coupling is truncated to three in-plane neighbors and updated only
   every 50 steps.
-- The field is held fixed within each nominal RK4/Heun/PC step.
-- The predictor-corrector bootstrap call does not match the current RK4
-  function signature and is not presently a verified runnable path.
-- Heun and predictor-corrector omit torque arguments; the runtime guard does
-  not protect against nonzero STT in those modes.
+- RK4 substage exchange, anisotropy, and DMI evaluation has focused checks,
+  but full coupled-field convergence remains unverified. Dipoles stay cached.
+- Heun and predictor-corrector retain fixed fields and unvalidated legacy
+  formulas. The bootstrap signature mismatch is removed; the complete PC4
+  path is still outside the recorded verification scope.
+- Heun and predictor-corrector omit torque arguments; the runtime guard now
+  rejects nonzero SOT and STT amplitudes in those modes.
 - The final-time state is computed but not saved: default output ends at
-  149.5 ps although evolution reaches 150 ps. ANI-01, OUT-01, and the TIME-01
+  24.5 ps although evolution reaches 25 ps. ANI-01, OUT-01, and the TIME-01
   update-count/time-label defects are corrected; endpoint saving remains open.
-- `final.mat` overwrites an existing output and stores the remaining workspace.
+- `Relax.mat` overwrites an existing output and stores the remaining workspace;
+  restart still expects a separately supplied `Relax_0.mat`.
 - No accepted production baseline or scientific convergence validation is
   provided by the import checks.
 
+## Merged PR #20 verification
+
+Documentation reconciliation on 2026-10-29 checked merged `d79ef2a` against
+reviewed head `cf19a99`:
+
+```bash
+git diff --exit-code cf19a99 HEAD -- '*.m'
+```
+
+The comparison passed with no MATLAB differences. The existing
+[PR #20 report](pr20-change-report.html#evidence) embeds the review harness,
+command, and captured log for that source. These are **recorded review
+results**, not simulations rerun during this documentation update. The
+report's pre-merge wording is historical. The checks used MATLAB R2024b
+Update 1 (`24.2.0.2740171`, PCWIN64), an NVIDIA GeForce RTX 3060 Laptop GPU
+(compute capability 8.6), and a 5 × 9 × 6 core with 140 occupied sites.
+
+| Check | Recorded result and scope |
+|---|---|
+| RK4 stage wiring | At `tstep=1e-16 s`, nonzero test SOT/STT amplitudes, and disabled dipoles: stage-state error $1.39\times10^{-17}$, fresh-field error $5.68\times10^{-14}$ T, and one-step error $1.11\times10^{-16}$ against an independent vector LLGS/RK4 calculation. Exchange, anisotropy, and DMI fields each changed between stages. |
+| Spin invariants | Finite spins, zero empty entries, maximum occupied-spin norm error $2.22\times10^{-16}$. |
+| Nonlinear analytical convergence | Isolated $B_z=b s_z$, synthetic $\gamma=\mu_s=1$, $\alpha=0.3$, $K_1=0.75$, initial $s_z=0.4$, duration 1: errors decreased from $1.80\times10^{-7}$ to $4.69\times10^{-11}$ over 8, 16, 32, and 64 steps. Observed orders were 3.945, 3.974, and 3.987. |
+| Dipole exception | Cache unchanged across eight field evaluations, while a fresh stage-2 dipole calculation differed by $2.64275883243\times10^{-4}$ T. This confirms the cache limitation, not dipole convergence. |
+
+The review command was:
+
+```bash
+matlab -wait -batch "addpath('//wsl.localhost/Ubuntu-22.04/tmp/fe2o3-pr20-rk4-review.aJwmJN'); verify_rk4"
+```
+
+That disposable harness is preserved as text in the report, not installed
+as a maintained test suite. The analytical comparison sampled duration 1
+by advancing one extra update, since output contains pre-update states.
+No full default simulation, Heun/PC4 validation, nonzero J1-DMI test,
+production memory/runtime benchmark, full coupled-field convergence, or
+material-specific validation is established by these results.
+
+This documentation pass checked source equality, default timing arithmetic,
+and explorer source snapshots. No MATLAB simulation was run and no MAT file
+was written. It adopts no new publication-derived physical claims.
+
 ## Merged PR #18 verification
+
+Historical record for `864d6b0`: PR #20 subsequently changed the integrator
+and anisotropy evaluation. The commands, source locations, and defaults in
+this section refer to the earlier checkout, not current `HEAD`.
 
 Documentation reconciliation on 2026-10-22 checked the merged source at
 `864d6b0` against the reviewed head `77dece1`:
@@ -664,7 +739,7 @@ Exact CPU command executed from the repository root:
 matlab -batch "s=fileread('integrate_llg.m'); first=strfind(s,'%% calcuation for anisotropy field'); last=strfind(s,'%% calcuation for DMI field'); mmxtmp=[0,0,1,0]; mmytmp=[0,0,0,0]; mmztmp=[1,-1,0,0]; hk6=1.76e-27; Ksim1=-8e-22; muigpu=1; eval(s(first(1):last(1)-1)); actual=[hani_x;hani_y;hani_z]'; assert(isequal(actual,[0,0,-1.6e-21;0,0,1.6e-21;0,0,0;0,0,0])); fprintf('PASS current ANI-01: +z, -z, +x and empty entries are finite and match expected fields with unit moment.\n'); fprintf('MATLAB %s; %s; CPU only; no trajectory or MAT output.\n',version,computer);"
 ```
 
-The default 150 ps duration is a source-derived update count, not a full-run
+The then-default 150 ps duration is a source-derived update count, not a full-run
 benchmark. Endpoint saving, non-integral chunk/step ratios, alternative
 solver paths, production memory/runtime cost, timestep/size convergence,
 and material-specific physical validation remain outside these checks.

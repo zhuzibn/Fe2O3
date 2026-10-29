@@ -40,7 +40,7 @@ parameter, or benchmark.
 - Anisotropy convention: the implemented second-order energy is $-K_1s_z^2$;
   the additional `hk6` field is preserved from `code_20261013`. Its complete
   energy/field mapping remains unresolved; use `docs/model-methodology.md`
-  for the implemented formula and known pole defect.
+  for the implemented formula, pole guards, and normalized angular evaluation.
 - Conservative fields, nonconservative torques, integration, and simulation
   orchestration must remain distinguishable even though the current scripts
   are not yet architecturally separated.
@@ -91,19 +91,23 @@ same evidence and approval as a code change.
 - Treat `distrib.m` and `exchangej_.m` together when changing site masks or
   neighbor topology. Verify every layer/site type rather than extrapolating
   from one branch.
-- Remember that `dmi.m` documents a reversal between MATLAB layer-index
-  direction and physical $z$.
+- Preserve the historical reversal between MATLAB layer-index direction and
+  physical $z$ recorded in `docs/model-methodology.md`; current `dmi.m`
+  uses the actual layer index for alternating signs.
 - Do not call the padded `circshift` construction periodic without a verified
   neighbor audit. The occupied core currently sees empty padding laterally.
 - No thermal field is currently implemented; the imported code has no
   `thermalenable` control.
 - Only `atomgpurk4.m` accepts the SOT/STT-labeled torque arguments. Do not claim
   torque support for the Heun or predictor-corrector kernels.
-- Do not claim that the predictor-corrector selection is runnable until its RK4
-  bootstrap signature mismatch is fixed and the complete path is tested.
-- The current kernels hold effective fields fixed within a nominal integration
-  step. Preserve that behavior unless the approved task explicitly changes and
-  validates the integrator.
+- The predictor-corrector bootstrap shares the RK4 path for three updates.
+  Do not treat the complete legacy Heun or predictor-corrector paths as
+  validated without focused checks; nonzero torque amplitudes require RK4.
+- RK4 reevaluates exchange, anisotropy, and DMI through `field_calc.m` at
+  each substage; `atomgpurk4.m` returns a derivative, not an integrated spin.
+  Heun and predictor-corrector retain fixed fields, and enabled dipoles remain
+  cached between refreshes in all modes. Preserve these distinctions unless
+  the approved task explicitly changes and validates the integrator.
 - Do not add unrequested physics, dependencies, configurability, or output
   formats.
 
@@ -113,7 +117,7 @@ The default run is GPU-dependent and potentially expensive. Do not launch the
 full default simulation merely as a syntax check. Prefer small deterministic
 verification cases defined in an approved plan.
 
-`main.m` writes `final.mat` without prompting. Tests and candidate runs must
+`main.m` writes `Relax.mat` without prompting. Tests and candidate runs must
 use a separate, non-destructive output path and must not overwrite a user's
 existing result or accepted baseline. Do not add generated `.mat` files to Git
 unless the user explicitly approves a documented baseline policy.
@@ -161,6 +165,8 @@ the documentation-impact check required by the global instructions.
 
 ## Documentation maintenance
 
+- Update `CHANGELOG.md` for meaningful behavior changes or significant fixes,
+  following the global changelog policy. Group related edits into one entry.
 - Update `README.md` when requirements, entry points, configuration, outputs,
   or repository layout change.
 - Update `docs/model-methodology.md` when implemented equations, units, signs,

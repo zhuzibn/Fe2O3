@@ -1,36 +1,42 @@
 # Issue status and historical import review
 
-## Current issue status (2026-10-22)
+## Current issue status (2026-10-29)
 
-PR #18 is merged at `864d6b0`. Its reviewed MATLAB source (`77dece1`)
-matches this checkout. The import decisions and reproduced failures below
-are preserved as history; they do not describe the current issue status.
+PR #20 is merged at `d79ef2a`; its reviewed MATLAB source (`cf19a99`)
+matches this checkout. PR #18 (`864d6b0`) supplied the earlier issue fixes.
+The import decisions and reproduced failures below are preserved as history.
 
 | Issue | Current status | Change and evidence |
 |---|---|---|
-| ANI-01: anisotropy pole NaN | Resolved as an arithmetic defect | `3e20e90` guards the angular denominator. Both exact poles now give finite second-order fields; the recorded 50,000-vector off-pole comparison was unchanged. The sixth-order energy and material provenance remain unresolved. |
-| OUT-01: DMI-history zeros and lag | Resolved | `71db4fd` records the field at its evaluation-state index `ct1`. Small GPU checks recomputed every saved field from its corresponding spin with maximum difference 0. |
-| TIME-01: chunk duration and time labels | Update counts and timestamps corrected; final endpoint still unsaved | `ab7d82e` runs a full `gpusteps` per chunk and labels samples from zero. The default run evolves for 150 ps and saves 300 aligned frames at 0–149.5 ps. The computed 150 ps endpoint is cleared before output. |
-| DMI-02: coefficient antisymmetry | Resolved on tested finite lattices | The sign correction in `0ab09d8` was followed by the J3/J4 operator in `77dece1`. The current operator has 820 directed entries and zero antisymmetry mismatches on the original 140-site core, with additional lattice and shell-weight checks recorded. Physical bond mapping and parameter provenance remain unresolved. |
+| ANI-01: anisotropy pole NaN | Resolved as an arithmetic defect | PR #18 guarded the pole division. PR #20 evaluates sixth-order angles from normalized stage components with `hypot` and guarded denominators in `field_calc.m`. The earlier 50,000-vector bitwise comparison applies to PR #18 only. Sixth-order energy and material provenance remain unresolved. |
+| OUT-01: DMI-history zeros and lag | Recording fix retained | PR #20 saves each pre-update spin and its first DMI field evaluation at the same `sample_index`. The zero-difference output checks were recorded for PR #18; no new end-to-end output check was run here. |
+| TIME-01: chunk duration and time labels | Update counts and timestamps corrected; final endpoint still unsaved | Each chunk performs `gpusteps` updates. Current defaults evolve for 25 ps and save 50 aligned frames at 0–24.5 ps. The computed 25 ps endpoint is cleared before output. |
+| DMI-02: coefficient antisymmetry | Resolved on tested J3/J4 operators | PR #20 retains the PR #18 J3/J4 operator and adds a J1 term with zero configured weight. Historical finite-lattice and shell-weight checks cover the zero-J1 operator. Nonzero J1, physical bond mapping, and parameter provenance remain unvalidated. |
 
-The default saved times are `0, 0.5, ..., 149.5 ps`. A restart from the last
-saved spin therefore resumes from the 149.5 ps state. Deciding whether to
-save the final endpoint, with a matching timestamp and DMI field, remains
-open; the TIME-01 timing correction does not settle that output policy.
+The default saved times are `0, 0.5, ..., 24.5 ps`. Restarting from the last
+saved spin therefore uses the 24.5 ps state. Output is now `Relax.mat`,
+while restart still reads `Relax_0.mat`. Saving the final endpoint with a
+matching timestamp and DMI field remains an open output decision.
+
+PR #20 also sets the default SOT current to zero, moves fields into
+`field_calc.m`, reevaluates exchange/anisotropy/DMI at RK4 substages, and
+keeps current spins on the GPU. `atomgpurk4.m` now returns a derivative.
+The PC4 bootstrap shares the RK4 path for three updates, removing the old
+signature mismatch. Both SOT and STT nonzero amplitudes are rejected for
+Heun/PC4. Their legacy fixed-field formulas and the dipole cache are retained.
 
 Evidence and exact scope are collected in
-[merged PR verification](docs/model-methodology.md#merged-pr-18-verification),
-the [PR #18 snapshot report](docs/pr18-time-01-change-report.html), and the
-[current DMI check](docs/structure-exchange-guide.md#current-dmi-visualization-check-2026-10-22).
-The snapshot report retains its pre-merge metadata and recorded results.
-During this documentation update, source equality was checked and the
-current anisotropy pole/axis/empty-entry block passed a fresh CPU MATLAB
-check. No full simulation or material-model benchmark was run.
+[PR #20 verification](docs/model-methodology.md#merged-pr-20-verification),
+the [PR #20 snapshot report](docs/pr20-change-report.html#evidence),
+[historical PR #18 verification](docs/model-methodology.md#merged-pr-18-verification),
+and the [DMI visualization record](docs/structure-exchange-guide.md#current-dmi-visualization-check-2026-10-22).
+The reports retain their original pre-merge wording. This documentation pass
+checked source equality with `cf19a99` and refreshed source excerpts;
+no MATLAB simulation or material-model benchmark was run.
 
-Other open items include the crystal-to-array and exchange-shell mappings,
-parameter provenance, sixth-order anisotropy energy, dipole truncation,
-fixed fields within solver substages, and the predictor-corrector bootstrap
-signature mismatch. See the
+Open items include crystal-to-array and exchange-shell mappings, parameter
+provenance, sixth-order anisotropy energy, dipole truncation/cache accuracy,
+full coupled-field convergence, and the complete legacy Heun/PC4 paths. See
 [maintained limitations](docs/model-methodology.md#known-limitations-and-open-decisions).
 
 ## Historical comparison: 35bd00b and code_20261013

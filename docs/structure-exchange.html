@@ -66,7 +66,7 @@
     <h1>From sites to sums.</h1>
     <p class="intro">Follow one colored atom through <code>distrib.m</code>, its exchange or DMI neighbors, and the shifts in <code>exchangej_.m</code> or <code>dmi.m</code>. Every view below follows the same selection.</p>
     <p><a href="unit-cell.html">Explore the 3D unit-cell schematic</a> · <a href="structure-exchange-guide.md">Complete guide &amp; neighbor table</a> · <a href="Alpha-Fe2O3-notebook.html">Notebook atlas</a></p>
-    <p class="note"><strong>Current MATLAB implementation · PR #18.</strong> DMI reuses the J3/J4 neighbor sums with separate shell weights and alternating layer signs. J1/J2 have no DMI contribution. Masks, offsets, and embedded excerpts follow the merged code. Physical bond vectors and parameter provenance remain <strong>UNRESOLVED</strong>; see <a href="model-methodology.md">methodology and known issues</a>. Notebook images remain historical records.</p>
+    <p class="note"><strong>Current MATLAB implementation · PR #20.</strong> DMI reuses the J3/J4 neighbor sums with separate shell weights and alternating layer signs. The retained J1 weight is configured to zero; J2 DMI is absent. Masks, offsets, and embedded excerpts follow the merged code. Physical bond vectors and parameter provenance remain <strong>UNRESOLVED</strong>; see <a href="model-methodology.md">methodology and known issues</a>. Notebook images remain historical records.</p>
     <p class="note">This is not an independent crystal reconstruction. Notebook box labels <strong>0 / 1</strong> are not code occupancy: <code>atomtype_=1</code> means an atom is present. Positions below use unpadded <strong>(row r, column c, layer k)</strong>.</p>
   </header>
   <noscript><p>The interactive views require JavaScript. The complete guide linked above includes all masks, neighbor offsets, and code locations.</p></noscript>
@@ -81,15 +81,15 @@
   <div class="legend" id="legend"></div>
   <section id="dmi-note" class="note" hidden>
     <h2>DMI / J3 and J4 shell weights</h2>
-    <p><strong style="color:#125d88">Blue links: J3, weight (−1)<sup>k</sup>D3.</strong> <strong style="color:#ae6633">Brown links: J4, weight −(−1)<sup>k</sup>D4.</strong> Atom colors retain their site meaning. An interior target has three J3 and six J4 neighbors. There is no unshifted J1 read. Surfaces and lateral padding omit absent neighbors exactly as in <code>exchangej_.m</code>.</p>
+    <p><strong style="color:#125d88">Blue links: J3, weight (−1)<sup>k</sup>D3.</strong> <strong style="color:#ae6633">Brown links: J4, weight −(−1)<sup>k</sup>D4.</strong> Atom colors retain their site meaning. An interior target has three J3 and six J4 neighbors with nonzero weights. The configured J1 term contributes zero. Surfaces and lateral padding omit absent neighbors exactly as in <code>exchangej_.m</code>.</p>
     <p id="dmi-layer" aria-live="polite"></p>
     <pre>S_D = (−1)^k (D3 S_J3 − D4 S_J4)    [J]
 B_DMI = (S_D,y, −S_D,x, 0) / μs      [T]
 W = diag((−1)^k) (D3 A3 − D4 A4)
 E_D = −xᵀ W y                       [J]</pre>
-    <p class="caption">D3 = <code>Dsim3 = 1.6e−23 J</code>; D4 = <code>Dsim4 = 1.28e−23 J</code>. Both become zero when <code>DMIenable=0</code>; the view shows enabled defaults. A3/A4 are the implemented neighbor matrices; x/y are occupied-spin components. The energy expression is transcribed from <code>dmi.m</code>. Layer k increases opposite to physical z. The three-layer mask motif repeats with opposite DMI signs: inspect both k options for each color.</p>
+    <p class="caption">D3 = <code>Dsim3 = 1.6e−23 J</code>; D4 = <code>Dsim4 = 1.28e−23 J</code>. Both become zero when <code>DMIenable=0</code>; the view shows enabled defaults. A3/A4 are the implemented neighbor matrices; x/y are occupied-spin components. The energy convention and layer orientation are retained from the PR #18 comments: layer k increases opposite to physical z. Current code also includes a J1 weight, but <code>Dsim1=0</code> in both branches of <code>main.m</code>; this view covers that configuration. J2 DMI is absent. The three-layer mask motif repeats with opposite DMI signs: inspect both k options for each color.</p>
     <p class="caption">Labels show algebraic weights, not physical DMI-vector arrows. The old DMI-02 mismatch belongs to the superseded operator. The current code's physical shell assignments, directed vectors, and parameter provenance remain <strong>UNRESOLVED</strong>. Notebook page 8 records the J3/J4 idea, not evidence for the new weights or their signs.</p>
-    <details><summary>Current parameter and field source</summary><p class="caption"><a href="../main.m">main.m</a> · lines 43–51. The Fig. 3(b) comment is source text; its publication locator and estimate are not verified here.</p><pre id="dmi-parameters"></pre><p class="caption"><a href="../integrate_llg.m">integrate_llg.m</a> · lines 174–182</p><pre id="dmi-field"></pre></details>
+    <details><summary>Current parameter and field source</summary><p class="caption"><a href="../main.m">main.m</a> · lines 43–53. The Fig. 3(b) comment is source text; its publication locator and estimate are not verified here.</p><pre id="dmi-parameters"></pre><p class="caption"><a href="../field_calc.m">field_calc.m</a> · lines 108–116</p><pre id="dmi-field"></pre></details>
   </section>
   <div class="panels">
     <section class="panel">
@@ -114,7 +114,7 @@ E_D = −xᵀ W y                       [J]</pre>
         <div><h2>Why the signs reverse</h2><pre>shifted = circshift(spins,[dr,dc]);
 shifted(r,c,k) = spins(r-dr,c-dc,k);
 % with wrapping of the allocated array</pre>
-          <p>A positive column shift gathers the neighbor at <code>c−1</code>. Shift definitions are in <a href="../integrate_llg.m">integrate_llg.m</a>, lines 95–133.</p>
+          <p>A positive column shift gathers the neighbor at <code>c−1</code>. Shift definitions are in <a href="../field_calc.m">field_calc.m</a>, lines 22–60.</p>
           <p id="explanation"></p>
           <p class="caption">Source excerpts are embedded snapshots so this page works offline. For each term, the actual implementation repeats the sum for x, y, and z. The complete guide lists their line ranges.</p>
         </div>
@@ -122,7 +122,7 @@ shifted(r,c,k) = spins(r-dr,c-dc,k);
     </section>
   </div>
   <details id="notebook-source"><summary>Compare with the original structure and annotations — <span id="page-label"></span></summary><a id="pdf-link" href="../Alpha-Fe2O3.pdf#page=10">Open original PDF</a><img id="notebook-image" class="source-image" src="Alpha-Fe2O3-pages/page-10.jpg" alt="Notebook page 10 showing structure sketches, array positions and exchange annotations"></details>
-  <footer>Implementation sources: distrib.m, exchangej_.m, dmi.m, main.m, and integrate_llg.m at merged PR #18 (864d6b0). The explorer depicts array indexing and shell weights; it does not establish physical shell assignments, crystallographic mapping, or material parameters. See the <a href="structure-exchange-guide.md#current-dmi-visualization-check-2026-10-22">current visualization checks</a> and <a href="model-methodology.md">model methodology</a>.</footer>
+  <footer>Implementation sources: distrib.m, exchangej_.m, dmi.m, main.m, and field_calc.m at merged PR #20 (d79ef2a). The explorer depicts array indexing and shell weights; it does not establish physical shell assignments, crystallographic mapping, or material parameters. See the <a href="structure-exchange-guide.md#current-dmi-visualization-check-2026-10-22">historical visualization checks</a> and <a href="model-methodology.md">model methodology</a>.</footer>
 </main>
 <script src="structure-exchange.js"></script>
 </body>
