@@ -118,22 +118,24 @@ implement this.” This closes the diagram-to-implementation discrepancy only;
 it does not resolve the qualifying-evidence gap for the physical
 crystal-to-array mapping.
 
-The default `natomH=6` contains two repetitions of the three-layer motif. The
-code assumes that adjacent layer indices exist where referenced; arbitrary
-values of `natomH`, especially values that truncate the motif differently,
-have not been validated.
+The default `natomH=6` contains two repetitions of the three-layer motif.
+The configuration validator requires a positive multiple of three, preserving
+the complete motif and the existing end-layer branches.
 
 ### Distribution controls
 
 `distrib.m` always generates occupancy and all six masks. The normal path is
-deterministic even though `main.m` calls `rng('shuffle')` and prints “use random
-atom distribution.” The old `atomtypee.mat` save/load block has been removed.
+deterministic even though the normal branch in `fe2o3_run.m` retains
+`rng('shuffle')`. No thermal/random-model draw is added. The old `atomtypee.mat` save/load block has been removed.
 
-Despite its legacy name, `load_fixed_atom_distrib=1` now loads the final
-`mmx/mmy/mmz` spin frame from `Relax_0.mat` in `systemgeneration.m`.
-That file is not supplied. No compatibility check against the generated
-dimensions and masks is performed. The default is zero. The remaining
-`save_fixed_atom_distrib` flag has no save action.
+Despite its legacy name, `load_fixed_atom_distrib=1` selects the last saved
+spin frame from `cfg.restart_file` (default `Relax_0.mat`, not supplied).
+`fe2o3_load_restart.m` checks complete double histories for shapes, finite real
+values, unit occupied spins and zero empty sites before selecting that frame.
+New schema results additionally require identical occupancy, all six masks and
+array ordering. Legacy files have no source/mapping provenance beyond those
+array checks. No normalization or solver/cache continuation is implied.
+The default load flag is zero; `save_fixed_atom_distrib` remains a no-op.
 
 ## Geometry and boundary behavior
 
@@ -256,8 +258,10 @@ $$
 
 This is implemented component by component in `field_calc.m`. No extra
 factor of $1/2$ appears in the field. Pair reciprocity passed the finite-lattice
-notebook comparison described above. Energy/field finite-difference agreement
-has not yet been tested.
+notebook comparison described above. Maintained CPU checks now verify each
+isolated exchange shell against Cartesian energy finite differences using
+scaled test coefficients; see [current verification](cq01-05-verification.md).
+This checks the implemented algebra, not physical shell assignments.
 
 ### Anisotropy
 
@@ -297,8 +301,8 @@ derivation, and the physical axis mapping remain `UNRESOLVED`.
 ### Dzyaloshinskii--Moriya interaction
 
 `exchangej_.m` first computes the stage spin-neighbor sums. Current
-`dmi.m:11–16` weights J1, J3, and J4, with `Dsim1=0` in both branches of
-`main.m`. Thus the configured operator remains the J3/J4 form introduced
+`dmi.m:11–16` weights J1, J3, and J4, with `Dsim1` fixed at zero in
+`fe2o3_validate_config.m`. Thus the configured operator remains the J3/J4 form introduced
 in PR #18, with weights in joules:
 
 $$
@@ -335,8 +339,9 @@ $\mathbf x,\mathbf y$ are the spin-component vectors. This is a transcription
 of the accepted code's energy/field convention, not a new physical bond-vector
 assignment or a literature validation.
 
-`main.m:43–53` sets `Dsim3=1.6e-23 J` and `Dsim4=1.28e-23 J` when enabled,
-and both zero when disabled. Its comments describe the absolute values as
+`fe2o3_default_config.m` retains nominal `Dsim3=1.6e-23 J` and `Dsim4=1.28e-23 J`;
+`fe2o3_validate_config.m` supplies the effective weights when enabled,
+and both zero when disabled. The defaults' comments describe the absolute values as
 user-selected and their ratio 1.25 as a Fig. 3(b) estimate. The exact
 publication locator and estimate have not been verified in this update;
 physical parameter provenance remains `UNRESOLVED`.
@@ -503,8 +508,9 @@ renamed `mmx`, `mmy`, and `mmz` after integration.
 **TIME-01 timing corrected (`ab7d82e`):** `while ct1<gpusteps+1` performs
 `gpusteps` updates per chunk. The current sampling rule is
 `mod(ct1-1,savetstep)==0`, before the update. At the defaults,
-25 × 10,000 updates at `1e-16 s` evolve for 25 ps. `main.m` labels frames with
-`t=(0:gpurun_number*final_m_savestep-1)*savetstep*tstep`. For the checked
+25 × 10,000 updates at `1e-16 s` evolve for 25 ps. The validator constructs
+`t=(0:sample_count-1)*savetstep*tstep`, where
+`sample_count=gpurun_number*final_m_savestep`, preserving the same arithmetic. For the checked
 integral chunk/step ratios, labels match elapsed time and start at zero.
 
 **Final endpoint still unsaved:** sampling includes each chunk's start and
@@ -536,7 +542,8 @@ hematite magnetic domains is `UNRESOLVED`.
 
 ## Checked-in parameter set
 
-The following values are transcribed from `main.m`. Values in meV are derived
+The following values are retained in `fe2o3_default_config.m` and derived by
+`fe2o3_validate_config.m` from the original `main.m`. Values in meV are derived
 here using the exact SI electron volt and are not separate inputs.
 
 | Quantity | MATLAB value | Derived/readable value | Evidence status |
@@ -561,7 +568,7 @@ here using the exact SI electron volt and are not separate inputs.
 | Time step | $10^{-16}\ \mathrm{s}$ | $0.1\ \mathrm{fs}$ | Implemented; convergence unresolved |
 
 The four exchange values convert to the LDA+$U$ numbers copied in the left-hand
-table on notebook page 3, while the `main.m` comment cites the 2023 hematite
+table on notebook page 3, while the legacy exchange comment, retained in `fe2o3_default_config.m`, cites the 2023 hematite
 paper. This is a provenance conflict, not proof that either source is wrong.
 The exact source table and the mapping between its shell labels and
 $J_1$--$J_4$ must be resolved before the comment or values are changed.
@@ -572,9 +579,9 @@ $J_1$--$J_4$ must be resolved before the comment or values are changed.
 |---|---|---|---|
 | Hematite crystal/site motif | Three-layer repeating occupancy and six color-labeled site masks | `distrib.m`; notebook pp. 1, 7--11 | Page-10 diagram/implementation agreement verified for a $3\times13\times3$ core; `UNRESOLVED`: no lattice-vector/basis table with exact paper locator |
 | Exchange shells | Site-dependent $J_1$--$J_4$ offset sums; intended bulk multiplicities $1,3,3,6$ | `exchangej_.m`; notebook pp. 2--4, 9--11 | Notebook/code agreement and reciprocity passed the finite-lattice audit above; `UNRESOLVED`: physical shell distances and source mapping |
-| Exchange values | Four values listed above | `main.m`; notebook pp. 2--3 | `UNRESOLVED`: code comment and copied table provenance conflict |
+| Exchange values | Four values listed above | `fe2o3_default_config.m`; notebook pp. 2--3 | `UNRESOLVED`: code comment and copied table provenance conflict |
 | Anisotropy | Second-order axial term plus guarded sixth-order field using normalized stage angles | `field_calc.m:83–107` | ANI-01 arithmetic defect resolved; `UNRESOLVED`: sixth-order energy, axis and parameter provenance |
-| DMI | $q_k(D_1S_{J1}+D_3S_{J3}-D_4S_{J4})$ sums, with $D_1=0$; retained PR #18 energy convention $-\mathbf x^T W\mathbf y$ | `dmi.m:11–16`; `main.m:43–53`; `field_calc.m:108–116` | DMI-02 antisymmetry defect resolved on tested J3/J4 operators; nonzero D1 unvalidated; `UNRESOLVED`: physical bonds, shell mapping, and parameter provenance |
+| DMI | $q_k(D_1S_{J1}+D_3S_{J3}-D_4S_{J4})$ sums, with $D_1=0$; retained PR #18 energy convention $-\mathbf x^T W\mathbf y$ | `dmi.m:11–16`; configuration defaults/validator; `field_calc.m:108–116` | DMI-02 antisymmetry defect resolved on tested J3/J4 operators; nonzero D1 unvalidated; `UNRESOLVED`: physical bonds, shell mapping, and parameter provenance |
 | Dipole | Three same-layer neighbors at $0.5067\ \mathrm{nm}$, refreshed every 50 steps | `dipole_.m`; notebook p. 6 | `UNRESOLVED`: truncation justification and source locator missing |
 | LLG/LLGS | Fixed-length LL form in tesla convention | GPU kernels; local equation reference | Focused RK4 precession, damping, and torque checks passed; general convergence unresolved |
 | Boundary | Empty two-cell lateral padding; omitted out-of-range layer bonds | `distrib.m`, `exchangej_.m`, `dmi.m` | Finite-lattice notebook/code agreement audited above; broader coordination and finite-size tests missing |
@@ -582,12 +589,22 @@ $J_1$--$J_4$ must be resolved before the comment or values are changed.
 
 ## Validation requirements
 
-No maintained automated test suite or accepted production benchmark is
-provided. Focused merged-PR and historical import checks are recorded below.
+Maintained CPU/GPU checks and isolated deterministic reference preparation are
+documented in [benchmark/README.md](../benchmark/README.md), with fresh evidence
+in [the CQ verification report](cq01-05-verification.md). The accepted short
+suite `cq-20261120-v1` protects six migration cases; full-duration production
+and physical convergence baselines remain unavailable. These checks do not close
+material-source gaps. Focused merged-PR and historical import checks remain below.
 An earlier manual structure check passed: the corrected page-10 diagram agrees with
 all six `distrib.m` site masks for a $3\times13\times3$ unpadded core. Before
 using the model for quantitative claims, add or perform the remaining checks
 in order:
+
+The maintained suite now covers small-lattice counts/reciprocity, isolated
+field derivatives, LLGS signs, RK4 stage/convergence and sample alignment
+within the scope in [the current report](cq01-05-verification.md). The
+following broader scientific checklist still applies; a passed small test
+does not establish material provenance or size/full-model convergence.
 
 1. **Structure:** extend the completed page-10 mask check to occupied-site
    counts, three-layer repetition, padding, and additional deterministic array
@@ -645,10 +662,11 @@ table.
 - The final-time state is computed but not saved: default output ends at
   24.5 ps although evolution reaches 25 ps. ANI-01, OUT-01, and the TIME-01
   update-count/time-label defects are corrected; endpoint saving remains open.
-- `Relax.mat` overwrites an existing output and stores the remaining workspace;
-  restart still expects a separately supplied `Relax_0.mat`.
-- No accepted production baseline or scientific convergence validation is
-  provided by the import checks.
+- The callable API saves an explicit `fe2o3_result` struct and protects existing
+  files by default. The script retains the filename `Relax.mat`; restart defaults
+  to separately supplied `Relax_0.mat`. See the root README for schema/compatibility.
+- The six-case short baseline establishes migration equivalence only; full
+  production/scientific convergence is not supplied by import or CQ checks.
 
 ## Merged PR #20 verification
 

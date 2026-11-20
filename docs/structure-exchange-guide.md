@@ -293,8 +293,8 @@ Select **DMI** to inspect the configured J3/J4 neighbors reused by current
 `dmi.m`. Blue links show J3; brown links show J4. Atom colors still
 identify the six site masks. Labels show the signed energy weight of each
 read, not a reconstructed physical DMI vector. The former `nex`/`pre` sums
-are absent. Current code includes `Dsim1*S_J1`, but `Dsim1=0` in both
-branches of `main.m`; the view depicts that zero-J1 configuration only.
+are absent. Current code includes `Dsim1*S_J1`, but `Dsim1=0` in
+`fe2o3_validate_config.m`; the view depicts that zero-J1 configuration only.
 
 Using the offset symbols in section 4, the reused sums are:
 
@@ -322,7 +322,7 @@ lateral padding as exchange supply the omissions. Away from lateral edges,
 first-layer green and last-layer red retain six DMI neighbors; first-layer
 orange and last-layer black retain three. Interior targets retain nine.
 The explorer uses a small `9 × 17 × 6` core for teaching the index rules;
-`main.m` defaults to `20 × 20 × 6`, padded to `24 × 24 × 6`.
+`fe2o3_default_config.m` retains the `20 × 20 × 6` core, padded to `24 × 24 × 6`.
 
 `dmi.m:11–16` constructs energy-weighted sums from the current stage's exchange
 sums, without a uniform-sublattice approximation. With configured `Dsim1=0`:
@@ -344,8 +344,8 @@ components. $W$ and $\mathbf S_D$ are in joules, $\mu_s$ in J/T, and
 $\mathbf B_D$ in tesla. This transcribes the accepted implementation; it
 does not establish its material-specific physical interpretation.
 
-`main.m:43–53` sets `Dsim3=1.6e-23 J`, `Dsim4=1.28e-23 J`, or both zero
-when disabled. The explorer shows the enabled defaults and each signed weight.
+`fe2o3_default_config.m` sets nominal `Dsim3=1.6e-23 J`, `Dsim4=1.28e-23 J`;
+`fe2o3_validate_config.m` sets their effective values to zero when disabled. The explorer shows the enabled defaults and each signed weight.
 The source labels the absolute values user-selected and the ratio 1.25 a
 Fig. 3(b) estimate. That comment's publication locator and estimate are not
 verified here: physical parameter provenance remains **UNRESOLVED**.

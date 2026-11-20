@@ -1,5 +1,15 @@
 %clear;clf;
 %load("3e12.mat");
+% Versioned results use explicit fields; historical workspace MAT files still work.
+if exist('fe2o3_result','var')
+    assert(strcmp(fe2o3_result.schema_version,'1.0'),'Unsupported Fe2O3 result schema.');
+    mmx=fe2o3_result.trajectory.mmx;
+    mmy=fe2o3_result.trajectory.mmy;
+    mmz=fe2o3_result.trajectory.mmz;
+    t=fe2o3_result.trajectory.t;
+    BDSOTRE=fe2o3_result.derived.BDSOTRE;
+    psjSHE=fe2o3_result.derived.psjSHE;
+end
 x_A=zeros(size(t));
 y_A=zeros(size(t));
 z_A=zeros(size(t));

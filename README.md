@@ -31,19 +31,38 @@ to a 25 ps zero-current run saved as `Relax.mat`.
 
 Focused import checks use MATLAB R2024b Update 1. Their scope and hardware
 results are recorded in [the methodology](docs/model-methodology.md#import-verification).
-No reproducible environment manifest or full production benchmark is provided.
+The accepted short regression suite records MATLAB/toolbox/GPU versions and source
+hashes; a full-duration production baseline is still unavailable.
 
 ## Running the model
 
-The entry point is `main.m`. Run it from the repository root so that all helper
-scripts are on the MATLAB path:
+Run from the repository root so that project scripts are on the MATLAB path.
+`main.m` runs the unchanged 25 ps defaults and requests `Relax.mat`; an existing
+file causes an error before integration:
 
 ```matlab
 cd('/path/to/Fe2O3')
 main
 ```
 
-Edit the configuration block near the beginning of `main.m` before running.
+For a customized run, edit a complete configuration returned by the defaults
+function. This short example returns the result without saving:
+
+```matlab
+cfg = fe2o3_default_config();
+cfg.natomW = 5; cfg.natomL = 9; cfg.natomH = 6;
+cfg.gpusave = 8e-16; cfg.gpurun_number = 3; cfg.savetstep = 2;
+result = fe2o3_run(cfg);
+% Choose an existing output directory and a fresh filename to save instead:
+% result = fe2o3_run(cfg, 'my-short-run.mat');
+```
+
+`fe2o3_validate_config` rejects missing/unknown fields, malformed or nonfinite
+inputs, incomplete three-layer motifs, nonintegral step counts and unsupported
+torques. Numeric inputs are converted to double before coefficient arithmetic.
+`gpusave/tstep` must be integral to floating-point tolerance and divisible by
+`savetstep`; `psjSTT` must be a unit row vector within `1e-12`.
+Constants remain in `constantfile.m`; derived values are not editable inputs.
 The most important controls are:
 
 | Setting | Meaning | Current default |
@@ -60,27 +79,47 @@ The most important controls are:
 | `load_fixed_atom_distrib` | Load last spin frame from `Relax_0.mat` | `0` |
 
 No thermal field or domain-wall initialization option is implemented in this
-version. The atom distribution is deterministic despite the console message
-referring to a random distribution. The legacy `save_fixed_atom_distrib` flag
+version. The atom distribution is deterministic; the retained normal branch still
+calls `rng('shuffle')` without drawing random model inputs. The legacy `save_fixed_atom_distrib` flag
 has no save action. `Relax_0.mat` is not supplied; enabling the restart option
-requires a compatible file with `mmx`, `mmy`, and `mmz` histories.
+requires `cfg.restart_file` (default `Relax_0.mat`) with either legacy
+`mmx/mmy/mmz` double histories or the new `fe2o3_result` struct. All frames must
+have compatible padded dimensions, finite real values, unit occupied spins
+within `2e-12`, and zero empty sites. New results must also match occupancy,
+all six masks and array ordering. The last saved frame is selected without
+normalization; this is a spin restart, not a full solver/cache checkpoint.
 RK4 is the default and has focused verification. Heun and predictor-corrector
 remain legacy, unvalidated alternatives with fixed-field approximations.
 The predictor-corrector bootstrap now shares the first three RK4 updates;
 the former argument mismatch is removed. Nonzero SOT or STT amplitudes are
 rejected unless `rk4=1`; enabled switches with zero current are allowed.
 
-By default, the run writes `Relax.mat` in the repository root and overwrites
-an existing file with that name without prompting. Use a separate working copy
-or change the output path before running cases whose existing output must be
-preserved. The file is a saved MATLAB workspace, so it contains more than the
-trajectory arrays alone, including `mmx/mmy/mmz`, `t`, and DMI histories
-`hdmi_allx/y/z`. The source cleanup removes the six site-specific masks and
-several temporary arrays before saving.
-The restart input remains `Relax_0.mat`; it does not automatically load the
-newly written `Relax.mat`.
+The callable API is `fe2o3_run(cfg, output_file, overwrite)`, with defaults
+`output_file=''` (in memory) and `overwrite=false`. Explicit replacement is
+`fe2o3_run(cfg, 'chosen-file.mat', true)`. The destination's parent directory
+must already exist. Accepted-reference storage and the active restart input
+are protected even with replacement requested, including resolved path aliases.
+A completed temporary MAT file is published by exclusive hard-link creation;
+explicit replacement uses an atomic move. A filesystem lacking those operations
+fails without a fallback that could clobber an existing file. Windows NTFS was tested.
 
-To plot a loaded result, run `One_data_curve`. It uses the spins at array
+Saved MAT files now contain only `fe2o3_result`, schema `1.0`. Arbitrary legacy
+workspace temporaries are no longer public outputs:
+
+| Field | Contents |
+|---|---|
+| `configuration`, `derived` | Validated nominal inputs; effective constants, coefficients, dimensions, counts and clock |
+| `geometry`, `initial_state` | Occupancy, all six masks, array order and actual starting spins |
+| `trajectory` | Host arrays `mmx/mmy/mmz`, `hdmi_allx/y/z` and `t` |
+| `units`, `sampling`, `model`, `limitations` | Tesla/seconds conventions, sample policy, solver/cache behavior and unresolved model issues |
+| `provenance` | UTC time, output arguments, Git state, SHA-256 of root MATLAB sources including untracked helpers, runtime/GPU identity, RNG states, restart identity and elapsed time |
+
+The runner rejects shadowed project kernels and source/Git changes during a run.
+Git must be available for provenance. No accepted raw MAT files are committed;
+transfer the separate baseline suite when preparing another computer.
+
+To plot a loaded result, run `load('my-short-run.mat'); One_data_curve`.
+Both the new struct and historical workspace files are supported. It uses the spins at array
 indices `(8,4,2)` and `(8,4,3)`, the latter's time trace, and a fixed six-panel
 layout for final y-component maps. It is not called automatically by `main`.
 
@@ -110,14 +149,18 @@ remain unresolved. See [the issue record](diff.md) for evidence and scope.
 
 | Path | Responsibility |
 |---|---|
-| `main.m` | Configuration, orchestration, cleanup, and workspace output |
+| `main.m` | Thin default-run script requesting protected `Relax.mat` |
+| `fe2o3_default_config.m`, `fe2o3_validate_config.m` | Canonical inputs and complete validation/derived coefficients |
+| `fe2o3_run.m` | Local-scope orchestration, explicit result assembly and provenance |
+| `fe2o3_load_restart.m`, `fe2o3_output_path.m`, `fe2o3_save_result.m`, `fe2o3_sha256.m` | Restart validation, output ownership, protected publication and byte identity |
+| `tests/`, `benchmark/` | Maintained checks, accepted-reference manifest and fresh candidate comparison |
 | `constantfile.m` | Physical constants used by the scripts |
 | `systemgeneration.m` | Alternating initial spin state or optional restart |
 | `distrib.m` | Occupancy and layer/site masks plus lateral padding |
 | `integrate_llg.m` | GPU state, RK4 stages, legacy solver dispatch, normalization, and sampling |
 | `field_calc.m` | Neighbor shifts, exchange/anisotropy/DMI fields, cached dipole field, and total field |
 | `exchangej_.m` | Site-dependent $J_1$--$J_4$ neighbor sums |
-| `dmi.m` | Alternating layer signs for J1/J3/J4 DMI sums; J1 weight is zero in `main.m` |
+| `dmi.m` | Alternating layer signs for J1/J3/J4 DMI sums; J1 weight is fixed at zero in the validator |
 | `dipole_.m` | Truncated nearest-neighbor in-plane dipole field |
 | `atomgpurk4.m` | LLGS derivative with SOT/STT-labeled torques; stages are assembled by `integrate_llg.m` |
 | `atomgpu.m` | Fixed-field Heun update without torque arguments |
@@ -196,14 +239,20 @@ summarizes which checks support the resolved issues.
 A separate [PR #20 change report](docs/pr20-change-report.html) compares
 `7392314` with the review snapshot `cf19a99`, now merged at `d79ef2a`.
 It shows all six changed files, explains the default-run and solver changes, and embeds the focused
-RK4 checks and the cached-dipole limitation. Its MATLAB source matches this
-checkout; the report retains its original pre-merge wording. See
+RK4 checks and the cached-dipole limitation. Current numerical statements match
+that source; `dmi.m` additionally contains explanatory comments. The report
+retains its original pre-merge wording. See
 [PR #20 verification scope](docs/model-methodology.md#merged-pr-20-verification)
 for the recorded results and remaining solver limitations.
 
-Focused import checks are recorded in the methodology; there is no accepted
-production benchmark or maintained automated test suite. Before using results
-quantitatively, at minimum verify lattice and
+Maintained focused CPU/GPU checks and a protected reference-preparation suite
+are now available; see [benchmark/README.md](benchmark/README.md) for commands
+and [the current verification report](docs/cq01-05-verification.md) for evidence.
+The accepted `cq-20261120-v1` suite covers six short cases. The new interface
+matches every saved spin/DMI sample and all effective inputs exactly on the
+tested environment. CPU, GPU, input/restart/output checks and 23 comparator/path
+rejection checks pass. Full-duration and physical size convergence remain open.
+Before using results quantitatively, at minimum verify lattice and
 site counts, neighbor multiplicities, field signs and units, spin-norm
 preservation, boundary coordination, time/output alignment, and timestep and
 size convergence. The detailed checklist is in

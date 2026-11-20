@@ -3,10 +3,12 @@ mx_init=zeros(natomW,natomL,natomH);%initial magnetization
 my_init=zeros(natomW,natomL,natomH);
 mz_init=zeros(natomW,natomL,natomH);
 if load_fixed_atom_distrib
-    load("Relax_0.mat","mmx","mmy","mmz");
-    mx_init=mmx(:,:,:,end);
-    my_init=mmy(:,:,:,end);
-    mz_init=mmz(:,:,:,end);
+    restart_geometry=struct('atomtype_',atomtype_,...
+        'atomtype_layer1gr',atomtype_layer1gr,'atomtype_layer1or',atomtype_layer1or,...
+        'atomtype_layer2blue',atomtype_layer2blue,'atomtype_layer2p',atomtype_layer2p,...
+        'atomtype_layer3red',atomtype_layer3red,'atomtype_layer3black',atomtype_layer3black,...
+        'array_order','W,L,H,time');
+    [mx_init,my_init,mz_init,restart_info]=fe2o3_load_restart(restart_file,restart_geometry);
 else
     thet_=90/180*pi;
     for ctL=1:natomL

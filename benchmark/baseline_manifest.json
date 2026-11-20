@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "status": "accepted",
+  "baseline_id": "cq-20261120-v1",
+  "directory": "baseline/cq-20261120-v1",
+  "manifest_sha256": "94e2b7a2ed194a0f9b2d2e5ec62774a890fa46665f0a872a5e731aec7fb13bb2",
+  "source_commit": "523500cf85d32462361776499937eb4ce25e7fd7",
+  "accepted_on": "2026-11-20",
+  "acceptance_record": "User replied continue to the explicit request to accept repeat-1 and the report tolerances and continue stages 5-7.",
+  "case_ids": [
+    "small-relax",
+    "driven-restart",
+    "default-core-short",
+    "heun-legacy",
+    "pc4-legacy",
+    "dipole-cache"
+  ],
+  "tolerances": {
+    "spin_max_abs": 2e-12,
+    "DMI_max_abs_T": 2e-10,
+    "occupied_norm_max_abs": 2e-12,
+    "time_inputs_mapping": "exact"
+  },
+  "environment": {
+    "matlab_version": "24.2.0.2740171 (R2024b) Update 1",
+    "platform": "PCWIN64",
+    "parallel_toolbox": {
+      "Name": "Parallel Computing Toolbox",
+      "Version": "24.2",
+      "Release": "(R2024b)",
+      "Date": "21-Jun-2024"
+    },
+    "gpu_name": "NVIDIA GeForce RTX 3060 Laptop GPU",
+    "compute_capability": "8.6",
+    "driver": "610.60",
+    "toolkit": 12.2,
+    "total_memory": 6441926656.0
+  },
+  "proposal_repeat_2_manifest_sha256": "3514e8a627713dd453d0ca587ffe9ac9aa0834f34bd008317993079c40a4e185"
+}

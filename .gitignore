@@ -7,3 +7,7 @@ Alpha-Fe2O3.pdf
 .venv/
 .ruff_cache/
 **/__pycache__/
+
+.cq-checks/
+benchmark/candidates/
+benchmark/baseline/

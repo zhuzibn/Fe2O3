@@ -117,9 +117,11 @@ The default run is GPU-dependent and potentially expensive. Do not launch the
 full default simulation merely as a syntax check. Prefer small deterministic
 verification cases defined in an approved plan.
 
-`main.m` writes `Relax.mat` without prompting. Tests and candidate runs must
-use a separate, non-destructive output path and must not overwrite a user's
-existing result or accepted baseline. Do not add generated `.mat` files to Git
+`main.m` calls `fe2o3_run(fe2o3_default_config(), 'Relax.mat')` and refuses
+existing output. Use the callable API for short checks; omit its output path
+for in-memory results. Explicit overwrite never permits accepted-reference
+storage or the active restart input. Tests and candidates must use fresh paths
+and preserve existing results. Do not add generated `.mat` files to Git
 unless the user explicitly approves a documented baseline policy.
 
 Do not install MATLAB toolboxes, GPU software, or other dependencies without
@@ -148,6 +150,19 @@ parameters, hardware-relevant details, and outcomes. Do not invent results.
 Before finalizing a file-changing task, run `git diff --stat` and
 `git diff --check` when practical, inspect unexpected large diffs, and perform
 the documentation-impact check required by the global instructions.
+
+Maintained focused checks are `tests/run_cpu_checks.m` and
+`tests/run_gpu_checks.m`, plus `tests/run_interface_checks.m` and
+`tests/check_benchmark_contract.m`; see `benchmark/README.md` for commands and scope.
+`benchmark/run_regression.m` consumes a separately transferred accepted suite,
+creates only fresh candidates, and fails if acceptance or raw data are missing.
+The versioned production MAT file contains only `fe2o3_result`; preserve the
+explicit schema and update documented restart/plot consumers with any change.
+`benchmark/capture_legacy_reference.m` is pinned to pre-migration source and
+creates proposals only. Never promote a proposal or regenerate an accepted
+reference without explicit review. Keep raw data outside Git and use the
+manifest hashes for identity checks. Candidate/comparator tests must preserve
+both accepted artifacts and unrelated historical review outputs.
 
 ## Visualization consistency
 
