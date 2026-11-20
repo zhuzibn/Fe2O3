@@ -33,6 +33,15 @@ Use the fields below where useful; omit inapplicable fields:
 
 ---
 
+### [Unreleased] | 2026-11-20
+- **Type:** fix
+- **Description:** Production saves now reject the acceptance manifest and its aliases even with explicit overwrite. Production and benchmark paths resolve relative to MATLAB's current directory after `cd`.
+- **Motivation:** The manifest sat outside the protected baseline subtree, and Java's startup-directory resolution could misinterpret relative destinations.
+- **Reference:** [CQ-04 follow-up verification](docs/cq04-followup.md).
+- **Test Strategy:** Disposable manifest/path/link checks, tiny GPU interface/save/restart checks, and all 23 benchmark corruption/path checks pass; accepted artifacts and numerical kernels are preserved.
+
+---
+
 ## Section 2: Error & Solution Log
 For significant resolved errors, add a concise note here when useful. Skip
 routine transient errors and avoid duplicating Section 1. Keep lengthy

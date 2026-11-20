@@ -11,10 +11,14 @@ if isempty(requested), destination=''; return; end
 destination=resolve(requested);
 root=fileparts(mfilename('fullpath'));
 protected=resolve(fullfile(root,'benchmark','baseline'));
+manifest=resolve(fullfile(root,'benchmark','baseline_manifest.json'));
 key=destination;
-if ispc, key=lower(key); protected=lower(protected); end
+manifest_key=manifest;
+if ispc, key=lower(key); protected=lower(protected); manifest_key=lower(manifest_key); end
 assert(~strcmp(key,protected) && ~startsWith(key,[protected filesep]),...
     'Fe2O3:ProtectedBaseline','Output is inside accepted-reference storage.');
+assert(~strcmp(key,manifest_key) && ~same_file(destination,manifest),...
+    'Fe2O3:ProtectedBaseline','Output cannot replace the acceptance manifest.');
 if ~isempty(restart_file)
     input=resolve(restart_file);
     if ispc, input=lower(input); end
@@ -25,7 +29,13 @@ assert(isfolder(fileparts(destination)) && ~isfolder(destination),...
 assert(overwrite || ~isfile(destination),'Fe2O3:OutputExists','Output already exists: %s',destination);
 end
 
+function yes=same_file(first,second)
+yes=isfile(first) && isfile(second) && java.nio.file.Files.isSameFile(...
+    java.io.File(first).toPath(),java.io.File(second).toPath());
+end
+
 function resolved=resolve(requested)
+if ~java.io.File(char(requested)).isAbsolute(), requested=fullfile(pwd,char(requested)); end
 ancestor=char(java.io.File(char(requested)).getAbsolutePath()); suffix='';
 while ~isfolder(ancestor) && ~isfile(ancestor)
     [parent,name,extension]=fileparts(ancestor);

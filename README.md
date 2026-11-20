@@ -1,5 +1,8 @@
 # Alpha-Fe2O3 atomistic spin dynamics
 
+Local checkout: `D:\Git_control\spin_dynamics\Fe2O3` (`/mnt/d/Git_control/spin_dynamics/Fe2O3` in WSL).
+Existing local data retain their paths relative to this checkout.
+
 This repository contains a MATLAB/GPU research implementation of an atomistic
 spin-dynamics model for $\alpha$-Fe$_2$O$_3$ (hematite). It represents
 fixed-length spins on a material-specific, three-layer repeating site pattern
@@ -45,8 +48,13 @@ cd('/path/to/Fe2O3')
 main
 ```
 
-For a customized run, edit a complete configuration returned by the defaults
-function. This short example returns the result without saving:
+### Custom parameters
+
+For a customized run, edit a complete configuration returned by
+[`fe2o3_default_config.m`](fe2o3_default_config.m), the complete editable input
+list. The small dimensions and timing below are illustrative software-check
+values, not a validated hematite parameter set. This example uses the GPU
+requirements above and returns the result without saving:
 
 ```matlab
 cfg = fe2o3_default_config();
@@ -99,6 +107,8 @@ The callable API is `fe2o3_run(cfg, output_file, overwrite)`, with defaults
 `fe2o3_run(cfg, 'chosen-file.mat', true)`. The destination's parent directory
 must already exist. Accepted-reference storage and the active restart input
 are protected even with replacement requested, including resolved path aliases.
+The sibling acceptance record `benchmark/baseline_manifest.json` is also protected,
+including hard-link aliases. Relative paths use MATLAB's current directory.
 A completed temporary MAT file is published by exclusive hard-link creation;
 explicit replacement uses an atomic move. A filesystem lacking those operations
 fails without a fallback that could clobber an existing file. Windows NTFS was tested.

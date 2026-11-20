@@ -4,6 +4,7 @@ root=fileparts(fileparts(mfilename('fullpath')));
 oldpath=path; oldcwd=pwd; saved_rng=rng;
 cleanup=onCleanup(@() restore_environment(oldpath,oldcwd,saved_rng));
 addpath(root); addpath(fullfile(root,'benchmark'));
+check_output_manifest;
 scratch=fe2o3_candidate_directory; diary(fullfile(scratch,'interface.log'));
 diary_cleanup=onCleanup(@() diary('off'));
 cfg=fe2o3_default_config; [normalized,d]=fe2o3_validate_config(cfg);

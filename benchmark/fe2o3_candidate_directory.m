@@ -20,6 +20,7 @@ end
 function resolved=resolve(requested)
 assert((ischar(requested) && isrow(requested)) || (isstring(requested) && isscalar(requested)),...
     'Fe2O3:InvalidPath','Expected a single path.');
+if ~java.io.File(char(requested)).isAbsolute(), requested=fullfile(pwd,char(requested)); end
 ancestor=char(java.io.File(char(requested)).getAbsolutePath()); suffix='';
 while ~isfolder(ancestor) && ~isfile(ancestor)
     [parent,name,extension]=fileparts(ancestor);
