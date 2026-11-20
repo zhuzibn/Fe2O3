@@ -186,6 +186,7 @@ remain unresolved. See [the issue record](diff.md) for evidence and scope.
 | `docs/structure-exchange.html`, `docs/structure-exchange.js` | Offline explorer with current source excerpts and signed DMI operator |
 | `docs/unit-cell.html`, `docs/unit-cell.js` | Rotatable notebook-based 3D schematic with cell repetition; illustrative coordinates, not simulation geometry |
 | `docs/model-methodology.md` | Maintained description of implemented behavior and evidence gaps |
+| [Historical DMI-02 conversation](docs/history/Fe2O3-DMI-02-conversation-2026-10-21.md) | Archived discussion with a historical-status note and link to the maintained methodology |
 | `AGENTS.md` | Project-specific instructions for coding agents |
 
 ## Methodology and evidence
